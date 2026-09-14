@@ -52,9 +52,11 @@ final class _RecordingSystemCallManager implements SystemCallManager {
   final List<String> answerSucceededCalls = [];
   final List<String> answerFailedCalls = [];
   final List<String> endedCalls = [];
-  final StreamController<String> _answered = StreamController<String>();
-  final StreamController<String> _rejected = StreamController<String>();
-  final StreamController<String> _ended = StreamController<String>();
+  final StreamController<String> _answered =
+      StreamController<String>.broadcast();
+  final StreamController<String> _rejected =
+      StreamController<String>.broadcast();
+  final StreamController<String> _ended = StreamController<String>.broadcast();
 
   @override
   Stream<String> get onAnswered => _answered.stream;
@@ -92,10 +94,6 @@ final class _RecordingSystemCallManager implements SystemCallManager {
   void emitEnded(String callSessionId) => _ended.add(callSessionId);
 
   Future<void> dispose() async {
-    await Future.wait([
-      _answered.close(),
-      _rejected.close(),
-      _ended.close(),
-    ]);
+    await Future.wait([_answered.close(), _rejected.close(), _ended.close()]);
   }
 }
