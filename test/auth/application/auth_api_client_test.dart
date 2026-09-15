@@ -53,6 +53,7 @@ final class _RecordingApiClient implements ApiClient {
   Future<Map<String, dynamic>> postJson(
     String requestPath, {
     Map<String, dynamic>? requestBody,
+    String? accessToken,
   }) async {
     path = requestPath;
     body = requestBody;
