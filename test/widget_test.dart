@@ -10,11 +10,12 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:oncue_mobile/app/oncue_app.dart';
 
 void main() {
-  testWidgets('renders the OnCue application shell', (
+  testWidgets('opens on the call combination selection screen', (
     WidgetTester tester,
   ) async {
     await tester.pumpWidget(const OnCueApp());
 
-    expect(find.text('OnCue'), findsOneWidget);
+    expect(find.text('통화 조합 선택'), findsOneWidget);
+    expect(find.text('산타'), findsOneWidget);
   });
 }

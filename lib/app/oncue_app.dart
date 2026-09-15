@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:oncue_mobile/combination/presentation/combination_list_page.dart';
 
 final class OnCueApp extends StatelessWidget {
   const OnCueApp({super.key});
@@ -10,7 +11,7 @@ final class OnCueApp extends StatelessWidget {
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.indigo),
       ),
-      home: const Scaffold(body: Center(child: Text('OnCue'))),
+      home: const CombinationListPage(),
     );
   }
 }
