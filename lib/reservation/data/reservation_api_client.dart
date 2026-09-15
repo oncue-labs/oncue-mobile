@@ -1,11 +1,37 @@
 import 'package:oncue_mobile/common/network/api_client.dart';
 import 'package:oncue_mobile/reservation/model/reservation.dart';
 
-final class ReservationApiClient {
+abstract interface class ReservationClient {
+  Future<Reservation> create(
+    ReservationInput input, {
+    String? accessToken,
+  });
+
+  Future<List<Reservation>> list({String? accessToken});
+
+  Future<Reservation> get(
+    String reservationId, {
+    String? accessToken,
+  });
+
+  Future<Reservation> update(
+    String reservationId,
+    ReservationInput input, {
+    String? accessToken,
+  });
+
+  Future<Reservation> cancel(
+    String reservationId, {
+    String? accessToken,
+  });
+}
+
+final class ReservationApiClient implements ReservationClient {
   ReservationApiClient(this._apiClient);
 
   final ApiClient _apiClient;
 
+  @override
   Future<Reservation> create(
     ReservationInput input, {
     String? accessToken,
@@ -18,6 +44,7 @@ final class ReservationApiClient {
     return Reservation.fromJson(response);
   }
 
+  @override
   Future<List<Reservation>> list({String? accessToken}) async {
     final response = await _apiClient.getJson(
       '/api/v1/reservations',
@@ -31,6 +58,7 @@ final class ReservationApiClient {
         .toList(growable: false);
   }
 
+  @override
   Future<Reservation> get(
     String reservationId, {
     String? accessToken,
@@ -42,6 +70,7 @@ final class ReservationApiClient {
     return Reservation.fromJson(Map<String, dynamic>.from(response! as Map));
   }
 
+  @override
   Future<Reservation> update(
     String reservationId,
     ReservationInput input, {
@@ -55,6 +84,7 @@ final class ReservationApiClient {
     return Reservation.fromJson(response);
   }
 
+  @override
   Future<Reservation> cancel(
     String reservationId, {
     String? accessToken,
