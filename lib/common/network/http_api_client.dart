@@ -12,7 +12,18 @@ final class JsonHttpResponse {
 }
 
 abstract interface class JsonHttpTransport {
+  Future<JsonHttpResponse> getJson(
+    Uri uri, {
+    required Map<String, String> headers,
+  });
+
   Future<JsonHttpResponse> postJson(
+    Uri uri, {
+    required Map<String, String> headers,
+    Map<String, dynamic>? body,
+  });
+
+  Future<JsonHttpResponse> patchJson(
     Uri uri, {
     required Map<String, String> headers,
     Map<String, dynamic>? body,
@@ -26,12 +37,38 @@ final class IoJsonHttpTransport implements JsonHttpTransport {
   final HttpClient _httpClient;
 
   @override
+  Future<JsonHttpResponse> getJson(
+    Uri uri, {
+    required Map<String, String> headers,
+  }) {
+    return _send('GET', uri, headers: headers);
+  }
+
+  @override
   Future<JsonHttpResponse> postJson(
     Uri uri, {
     required Map<String, String> headers,
     Map<String, dynamic>? body,
   }) async {
-    final request = await _httpClient.postUrl(uri);
+    return _send('POST', uri, headers: headers, body: body);
+  }
+
+  @override
+  Future<JsonHttpResponse> patchJson(
+    Uri uri, {
+    required Map<String, String> headers,
+    Map<String, dynamic>? body,
+  }) {
+    return _send('PATCH', uri, headers: headers, body: body);
+  }
+
+  Future<JsonHttpResponse> _send(
+    String method,
+    Uri uri, {
+    required Map<String, String> headers,
+    Map<String, dynamic>? body,
+  }) async {
+    final request = await _httpClient.openUrl(method, uri);
     headers.forEach(request.headers.set);
     if (body != null) {
       request.write(jsonEncode(body));
@@ -57,39 +94,81 @@ final class HttpApiClient implements ApiClient {
   final JsonHttpTransport _transport;
 
   @override
+  Future<Object?> getJson(
+    String requestPath, {
+    String? accessToken,
+  }) async {
+    final response = await _transport.getJson(
+      _baseUri.resolve(requestPath),
+      headers: _headers(accessToken),
+    );
+    return _decodeResponse(response);
+  }
+
+  @override
   Future<Map<String, dynamic>> postJson(
     String requestPath, {
     Map<String, dynamic>? requestBody,
     String? accessToken,
   }) async {
+    final response = await _transport.postJson(
+      _baseUri.resolve(requestPath),
+      headers: _headers(accessToken),
+      body: requestBody,
+    );
+    return _decodeObjectResponse(response);
+  }
+
+  @override
+  Future<Map<String, dynamic>> patchJson(
+    String requestPath, {
+    Map<String, dynamic>? requestBody,
+    String? accessToken,
+  }) async {
+    final response = await _transport.patchJson(
+      _baseUri.resolve(requestPath),
+      headers: _headers(accessToken),
+      body: requestBody,
+    );
+    return _decodeObjectResponse(response);
+  }
+
+  Map<String, String> _headers(String? accessToken) {
     final headers = <String, String>{
       'content-type': 'application/json',
     };
     if (accessToken != null) {
       headers['authorization'] = 'Bearer $accessToken';
     }
+    return headers;
+  }
 
-    final response = await _transport.postJson(
-      _baseUri.resolve(requestPath),
-      headers: headers,
-      body: requestBody,
-    );
-    final responseBody = _decodeObject(response.body);
+  Object? _decodeResponse(JsonHttpResponse response) {
+    final responseBody = _decodeJson(response.body);
     if (response.statusCode < 200 || response.statusCode >= 300) {
-      throw ApiError.fromJson(response.statusCode, responseBody);
+      throw ApiError.fromJson(
+        response.statusCode,
+        responseBody is Map
+            ? Map<String, dynamic>.from(responseBody)
+            : <String, dynamic>{},
+      );
     }
     return responseBody;
   }
 
-  Map<String, dynamic> _decodeObject(String responseBody) {
+  Map<String, dynamic> _decodeObjectResponse(JsonHttpResponse response) {
+    final responseBody = _decodeResponse(response);
+    if (responseBody is! Map) {
+      throw const FormatException('API response must be a JSON object');
+    }
+    return Map<String, dynamic>.from(responseBody);
+  }
+
+  Object? _decodeJson(String responseBody) {
     if (responseBody.trim().isEmpty) {
       return <String, dynamic>{};
     }
 
-    final decodedBody = jsonDecode(responseBody);
-    if (decodedBody is! Map) {
-      throw const FormatException('API response must be a JSON object');
-    }
-    return Map<String, dynamic>.from(decodedBody);
+    return jsonDecode(responseBody);
   }
 }

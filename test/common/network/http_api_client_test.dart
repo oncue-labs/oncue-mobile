@@ -51,15 +51,64 @@ void main() {
       ),
     );
   });
+
+  test('supports GET and PATCH JSON requests through the same transport', () async {
+    final getTransport = _RecordingJsonHttpTransport(
+      response: const JsonHttpResponse(statusCode: 200, body: '[{"id":1}]'),
+    );
+    final getClient = HttpApiClient(
+      baseUri: Uri.parse('https://api.oncue.test/'),
+      transport: getTransport,
+    );
+
+    final listResponse = await getClient.getJson('/api/v1/reservations');
+
+    expect(getTransport.method, 'GET');
+    expect(listResponse, [
+      {'id': 1},
+    ]);
+
+    final patchTransport = _RecordingJsonHttpTransport(
+      response: const JsonHttpResponse(
+        statusCode: 200,
+        body: '{"reservationStatus":"SCHEDULED"}',
+      ),
+    );
+    final patchClient = HttpApiClient(
+      baseUri: Uri.parse('https://api.oncue.test/'),
+      transport: patchTransport,
+    );
+
+    final patchResponse = await patchClient.patchJson(
+      '/api/v1/reservations/1001',
+      requestBody: {'callGoal': '목표'},
+    );
+
+    expect(patchTransport.method, 'PATCH');
+    expect(patchTransport.body, {'callGoal': '목표'});
+    expect(patchResponse, {'reservationStatus': 'SCHEDULED'});
+  });
 }
 
 final class _RecordingJsonHttpTransport implements JsonHttpTransport {
   _RecordingJsonHttpTransport({required this.response});
 
   final JsonHttpResponse response;
+  String? method;
   Uri? uri;
   Map<String, String>? headers;
   Map<String, dynamic>? body;
+
+  @override
+  Future<JsonHttpResponse> getJson(
+    Uri uri, {
+    required Map<String, String> headers,
+  }) async {
+    method = 'GET';
+    this.uri = uri;
+    this.headers = headers;
+    return response;
+  }
 
   @override
   Future<JsonHttpResponse> postJson(
@@ -67,6 +116,20 @@ final class _RecordingJsonHttpTransport implements JsonHttpTransport {
     required Map<String, String> headers,
     Map<String, dynamic>? body,
   }) async {
+    method = 'POST';
+    this.uri = uri;
+    this.headers = headers;
+    this.body = body;
+    return response;
+  }
+
+  @override
+  Future<JsonHttpResponse> patchJson(
+    Uri uri, {
+    required Map<String, String> headers,
+    Map<String, dynamic>? body,
+  }) async {
+    method = 'PATCH';
     this.uri = uri;
     this.headers = headers;
     this.body = body;
