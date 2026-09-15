@@ -12,11 +12,17 @@ final class ReservationFormPage extends StatefulWidget {
     required this.initialScheduledAtLocal,
     required this.timeZone,
     required this.reservationService,
+    this.reservationId,
+    this.initialScenarioContext = '',
+    this.initialCallGoal = '',
     this.accessToken,
     this.onSaved,
   });
 
   final CallCombinationCard combination;
+  final String? reservationId;
+  final String initialScenarioContext;
+  final String initialCallGoal;
   final DateTime initialScheduledAtLocal;
   final String timeZone;
   final ReservationService reservationService;
@@ -37,8 +43,10 @@ final class _ReservationFormPageState extends State<ReservationFormPage> {
   @override
   void initState() {
     super.initState();
-    _scenarioContextController = TextEditingController();
-    _callGoalController = TextEditingController();
+    _scenarioContextController = TextEditingController(
+      text: widget.initialScenarioContext,
+    );
+    _callGoalController = TextEditingController(text: widget.initialCallGoal);
     _scheduledAtLocal = widget.initialScheduledAtLocal;
   }
 
@@ -51,8 +59,9 @@ final class _ReservationFormPageState extends State<ReservationFormPage> {
 
   @override
   Widget build(BuildContext context) {
+    final isEditing = widget.reservationId != null;
     return Scaffold(
-      appBar: AppBar(title: const Text('통화 예약')),
+      appBar: AppBar(title: Text(isEditing ? '예약 수정' : '통화 예약')),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
@@ -96,13 +105,16 @@ final class _ReservationFormPageState extends State<ReservationFormPage> {
           const Text('예약 시각은 정확히 보장되지 않을 수 있어요.'),
           if (_errorMessage case final error?) ...[
             const SizedBox(height: 16),
-            Text(error, style: TextStyle(color: Theme.of(context).colorScheme.error)),
+            Text(
+              error,
+              style: TextStyle(color: Theme.of(context).colorScheme.error),
+            ),
           ],
           const SizedBox(height: 24),
           FilledButton(
-            key: const ValueKey('create-reservation-button'),
+            key: const ValueKey('reservation-submit-button'),
             onPressed: _isSaving ? null : _saveReservation,
-            child: const Text('예약하기'),
+            child: Text(isEditing ? '수정하기' : '예약하기'),
           ),
         ],
       ),
@@ -143,14 +155,25 @@ final class _ReservationFormPageState extends State<ReservationFormPage> {
       _errorMessage = null;
     });
     try {
-      final reservation = await widget.reservationService.createFromCard(
-        combination: widget.combination,
-        scenarioContext: _scenarioContextController.text,
-        callGoal: _callGoalController.text,
-        scheduledAtLocal: _scheduledAtLocal,
-        timeZone: widget.timeZone,
-        accessToken: widget.accessToken,
-      );
+      final reservationId = widget.reservationId;
+      final reservation = reservationId == null
+          ? await widget.reservationService.createFromCard(
+              combination: widget.combination,
+              scenarioContext: _scenarioContextController.text,
+              callGoal: _callGoalController.text,
+              scheduledAtLocal: _scheduledAtLocal,
+              timeZone: widget.timeZone,
+              accessToken: widget.accessToken,
+            )
+          : await widget.reservationService.edit(
+              reservationId: reservationId,
+              combination: widget.combination,
+              scenarioContext: _scenarioContextController.text,
+              callGoal: _callGoalController.text,
+              scheduledAtLocal: _scheduledAtLocal,
+              timeZone: widget.timeZone,
+              accessToken: widget.accessToken,
+            );
       if (!mounted) {
         return;
       }
@@ -165,7 +188,8 @@ final class _ReservationFormPageState extends State<ReservationFormPage> {
       await Navigator.of(context).push<void>(
         MaterialPageRoute(
           builder: (_) => PermissionGuidePage(
-            requestMissingPermissions: widget.reservationService.requestMissingPermissions,
+            requestMissingPermissions:
+                widget.reservationService.requestMissingPermissions,
             openSettings: widget.reservationService.openPermissionSettings,
           ),
         ),

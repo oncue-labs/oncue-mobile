@@ -60,7 +60,7 @@ void main() {
       ),
     );
 
-    await tester.tap(find.byKey(const ValueKey('create-reservation-button')));
+    await tester.tap(find.byKey(const ValueKey('reservation-submit-button')));
     await tester.pumpAndSettle();
 
     expect(find.text('통화 권한 안내'), findsOneWidget);
@@ -95,13 +95,47 @@ void main() {
       find.byKey(const ValueKey('call-goal-input')),
       '민수가 빨리 잠들게 해 주세요.',
     );
-    await tester.tap(find.byKey(const ValueKey('create-reservation-button')));
+    await tester.tap(find.byKey(const ValueKey('reservation-submit-button')));
     await tester.pumpAndSettle();
 
     expect(apiClient.createdInput?.personaKey, 'santa');
     expect(apiClient.createdInput?.scenarioKey, 'child-roleplay');
     expect(apiClient.createdInput?.scenarioContext, '아이 이름은 민수예요.');
     expect(apiClient.createdInput?.callGoal, '민수가 빨리 잠들게 해 주세요.');
+    expect(savedReservation?.reservationId, '1001');
+  });
+
+  testWidgets('prefills and updates an existing reservation', (tester) async {
+    final apiClient = _FakeReservationClient();
+    Reservation? savedReservation;
+    await tester.pumpWidget(
+      MaterialApp(
+        home: ReservationFormPage(
+          combination: combination,
+          reservationId: '1001',
+          initialScenarioContext: '기존 아이 이름은 민수예요.',
+          initialCallGoal: '기존 목표를 유지해 주세요.',
+          initialScheduledAtLocal: scheduledAtLocal,
+          timeZone: 'Asia/Seoul',
+          reservationService: _service(
+            permissionStatus: CallPermissionStatus.ready,
+            apiClient: apiClient,
+          ),
+          onSaved: (reservation) => savedReservation = reservation,
+        ),
+      ),
+    );
+
+    expect(find.text('예약 수정'), findsOneWidget);
+    expect(find.text('기존 아이 이름은 민수예요.'), findsOneWidget);
+    expect(find.text('기존 목표를 유지해 주세요.'), findsOneWidget);
+
+    await tester.tap(find.byKey(const ValueKey('reservation-submit-button')));
+    await tester.pumpAndSettle();
+
+    expect(apiClient.updatedReservationId, '1001');
+    expect(apiClient.updatedInput?.scenarioContext, '기존 아이 이름은 민수예요.');
+    expect(apiClient.updatedInput?.callGoal, '기존 목표를 유지해 주세요.');
     expect(savedReservation?.reservationId, '1001');
   });
 }
@@ -134,6 +168,8 @@ final class _FakeCallPermissionService implements CallPermissionService {
 final class _FakeReservationClient implements ReservationClient {
   int createCount = 0;
   ReservationInput? createdInput;
+  String? updatedReservationId;
+  ReservationInput? updatedInput;
 
   @override
   Future<Reservation> cancel(
@@ -152,20 +188,24 @@ final class _FakeReservationClient implements ReservationClient {
   }
 
   @override
-  Future<Reservation> get(
-    String reservationId, {
-    String? accessToken,
-  }) async => _reservation();
+  Future<Reservation> get(String reservationId, {String? accessToken}) async =>
+      _reservation();
 
   @override
-  Future<List<Reservation>> list({String? accessToken}) async => [_reservation()];
+  Future<List<Reservation>> list({String? accessToken}) async => [
+    _reservation(),
+  ];
 
   @override
   Future<Reservation> update(
     String reservationId,
     ReservationInput input, {
     String? accessToken,
-  }) async => _reservation();
+  }) async {
+    updatedReservationId = reservationId;
+    updatedInput = input;
+    return _reservation();
+  }
 }
 
 Reservation _reservation() {
