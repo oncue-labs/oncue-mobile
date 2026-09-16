@@ -40,6 +40,8 @@ final class AuthService {
 
   Future<void> logout() => _sessionStore.clear();
 
+  Future<AuthSession?> loadSession() => _sessionStore.load();
+
   Future<T> runAuthenticated<T>(Future<T> Function() request) async {
     try {
       return await request();
