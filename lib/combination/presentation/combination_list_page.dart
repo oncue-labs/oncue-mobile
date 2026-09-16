@@ -2,14 +2,22 @@ import 'package:flutter/material.dart';
 import 'package:oncue_mobile/combination/data/mvp_call_combinations.dart';
 import 'package:oncue_mobile/combination/model/call_combination_card.dart';
 import 'package:oncue_mobile/combination/presentation/combination_detail_page.dart';
+import 'package:oncue_mobile/common/device/device_time_zone_provider.dart';
+import 'package:oncue_mobile/reservation/application/reservation_service.dart';
 
 final class CombinationListPage extends StatelessWidget {
   const CombinationListPage({
     super.key,
     this.combinations = MvpCallCombinations.all,
+    this.reservationService,
+    this.timeZoneProvider,
+    this.accessToken,
   });
 
   final List<CallCombinationCard> combinations;
+  final ReservationService? reservationService;
+  final DeviceTimeZoneProvider? timeZoneProvider;
+  final String? accessToken;
 
   @override
   Widget build(BuildContext context) {
@@ -26,7 +34,12 @@ final class CombinationListPage extends StatelessWidget {
             onTap: () {
               Navigator.of(context).push(
                 MaterialPageRoute<void>(
-                  builder: (_) => CombinationDetailPage(combination: combination),
+                  builder: (_) => CombinationDetailPage(
+                    combination: combination,
+                    reservationService: reservationService,
+                    timeZoneProvider: timeZoneProvider,
+                    accessToken: accessToken,
+                  ),
                 ),
               );
             },
@@ -38,10 +51,7 @@ final class CombinationListPage extends StatelessWidget {
 }
 
 final class _CombinationCardTile extends StatelessWidget {
-  const _CombinationCardTile({
-    required this.combination,
-    required this.onTap,
-  });
+  const _CombinationCardTile({required this.combination, required this.onTap});
 
   final CallCombinationCard combination;
   final VoidCallback onTap;

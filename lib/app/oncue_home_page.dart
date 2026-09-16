@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:oncue_mobile/combination/data/mvp_call_combinations.dart';
 import 'package:oncue_mobile/combination/presentation/combination_list_page.dart';
+import 'package:oncue_mobile/common/device/device_time_zone_provider.dart';
 import 'package:oncue_mobile/reservation/application/reservation_service.dart';
 import 'package:oncue_mobile/reservation/model/reservation.dart';
 import 'package:oncue_mobile/reservation/presentation/reservation_list_page.dart';
@@ -10,11 +11,13 @@ final class OnCueHomePage extends StatefulWidget {
     super.key,
     this.loadReservations,
     this.reservationService,
+    this.timeZoneProvider,
     this.accessToken,
   });
 
   final Future<List<Reservation>> Function()? loadReservations;
   final ReservationService? reservationService;
+  final DeviceTimeZoneProvider? timeZoneProvider;
   final String? accessToken;
 
   @override
@@ -29,7 +32,11 @@ final class _OnCueHomePageState extends State<OnCueHomePage> {
   void initState() {
     super.initState();
     _pages = [
-      const CombinationListPage(),
+      CombinationListPage(
+        reservationService: widget.reservationService,
+        timeZoneProvider: widget.timeZoneProvider,
+        accessToken: widget.accessToken,
+      ),
       ReservationListPage(
         loadReservations: widget.loadReservations ?? _emptyReservations,
         combinations: MvpCallCombinations.all,
