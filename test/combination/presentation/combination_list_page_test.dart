@@ -110,6 +110,14 @@ void main() {
     await tester.pumpAndSettle();
     await tester.fling(find.byType(ListView), const Offset(0, -1000), 1000);
     await tester.pump();
+    await tester.enterText(
+      find.byKey(const ValueKey('scenario-context-input')),
+      '아이 이름은 민수예요.',
+    );
+    await tester.enterText(
+      find.byKey(const ValueKey('call-goal-input')),
+      '민수가 빨리 잠들게 해 주세요.',
+    );
     await tester.tap(find.byKey(const ValueKey('reserve-combination-button')));
     await tester.pumpAndSettle();
 
@@ -117,6 +125,8 @@ void main() {
       find.byType(ReservationFormPage),
     );
     expect(form.timeZone, 'Asia/Seoul');
+    expect(form.initialScenarioContext, '아이 이름은 민수예요.');
+    expect(form.initialCallGoal, '민수가 빨리 잠들게 해 주세요.');
     expect(find.text('통화 예약'), findsOneWidget);
   });
 }

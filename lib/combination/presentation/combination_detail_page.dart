@@ -5,7 +5,7 @@ import 'package:oncue_mobile/reservation/application/reservation_service.dart';
 import 'package:oncue_mobile/reservation/model/reservation.dart';
 import 'package:oncue_mobile/reservation/presentation/reservation_form_page.dart';
 
-final class CombinationDetailPage extends StatelessWidget {
+final class CombinationDetailPage extends StatefulWidget {
   const CombinationDetailPage({
     super.key,
     required this.combination,
@@ -20,21 +20,43 @@ final class CombinationDetailPage extends StatelessWidget {
   final String? accessToken;
 
   @override
+  State<CombinationDetailPage> createState() => _CombinationDetailPageState();
+}
+
+final class _CombinationDetailPageState extends State<CombinationDetailPage> {
+  late final TextEditingController _scenarioContextController;
+  late final TextEditingController _callGoalController;
+
+  @override
+  void initState() {
+    super.initState();
+    _scenarioContextController = TextEditingController();
+    _callGoalController = TextEditingController();
+  }
+
+  @override
+  void dispose() {
+    _scenarioContextController.dispose();
+    _callGoalController.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text(combination.personaName)),
+      appBar: AppBar(title: Text(widget.combination.personaName)),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
-          _DetailPersonaImage(assetPath: combination.personaImageAsset),
+          _DetailPersonaImage(assetPath: widget.combination.personaImageAsset),
           const SizedBox(height: 16),
           Text(
-            combination.personaName,
-            key: ValueKey('detail-persona-${combination.personaKey}'),
+            widget.combination.personaName,
+            key: ValueKey('detail-persona-${widget.combination.personaKey}'),
             style: Theme.of(context).textTheme.headlineSmall,
           ),
           const SizedBox(height: 8),
-          Text(combination.scenarioDescription),
+          Text(widget.combination.scenarioDescription),
           const SizedBox(height: 16),
           OutlinedButton.icon(
             onPressed: null,
@@ -45,9 +67,10 @@ final class CombinationDetailPage extends StatelessWidget {
           const SizedBox(height: 24),
           TextField(
             key: const ValueKey('scenario-context-input'),
+            controller: _scenarioContextController,
             decoration: InputDecoration(
               labelText: '시나리오 컨텍스트',
-              hintText: combination.scenarioContextPlaceholder,
+              hintText: widget.combination.scenarioContextPlaceholder,
               border: const OutlineInputBorder(),
             ),
             maxLines: 4,
@@ -55,14 +78,16 @@ final class CombinationDetailPage extends StatelessWidget {
           const SizedBox(height: 16),
           TextField(
             key: const ValueKey('call-goal-input'),
+            controller: _callGoalController,
             decoration: InputDecoration(
               labelText: '통화 목표',
-              hintText: combination.callGoalPlaceholder,
+              hintText: widget.combination.callGoalPlaceholder,
               border: const OutlineInputBorder(),
             ),
             maxLines: 3,
           ),
-          if (reservationService != null && timeZoneProvider != null) ...[
+          if (widget.reservationService != null &&
+              widget.timeZoneProvider != null) ...[
             const SizedBox(height: 24),
             FilledButton(
               key: const ValueKey('reserve-combination-button'),
@@ -76,8 +101,8 @@ final class CombinationDetailPage extends StatelessWidget {
   }
 
   Future<void> _openReservationForm(BuildContext context) async {
-    final service = reservationService;
-    final provider = timeZoneProvider;
+    final service = widget.reservationService;
+    final provider = widget.timeZoneProvider;
     if (service == null || provider == null) {
       return;
     }
@@ -89,13 +114,15 @@ final class CombinationDetailPage extends StatelessWidget {
       final savedReservation = await Navigator.of(context).push<Reservation>(
         MaterialPageRoute<Reservation>(
           builder: (_) => ReservationFormPage(
-            combination: combination,
+            combination: widget.combination,
             initialScheduledAtLocal: DateTime.now().add(
               const Duration(minutes: 10),
             ),
+            initialScenarioContext: _scenarioContextController.text,
+            initialCallGoal: _callGoalController.text,
             timeZone: timeZone,
             reservationService: service,
-            accessToken: accessToken,
+            accessToken: widget.accessToken,
           ),
         ),
       );
