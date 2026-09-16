@@ -3,6 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:oncue_mobile/auth/application/auth_service.dart';
 import 'package:oncue_mobile/auth/data/auth_api_client.dart';
 import 'package:oncue_mobile/auth/data/oauth_authorization_client.dart';
+import 'package:oncue_mobile/auth/model/auth_login_request.dart';
 import 'package:oncue_mobile/auth/model/auth_provider.dart';
 import 'package:oncue_mobile/auth/presentation/auth_gate.dart';
 import 'package:oncue_mobile/common/auth/auth_session.dart';
@@ -68,8 +69,7 @@ void main() {
 
     expect(authorizationClient.provider, AuthProvider.kakao);
     expect(authApiClient.provider, 'kakao');
-    expect(authApiClient.authorizationCode, 'authorization-code');
-    expect(authApiClient.codeVerifier, 'code-verifier');
+    expect(authApiClient.providerAccessToken, 'kakao-provider-access-token');
     expect(find.byKey(const ValueKey('authenticated-home')), findsOneWidget);
   });
 }
@@ -109,18 +109,16 @@ final class _FakeAuthApiClient implements AuthClient {
 
   final AuthSession session;
   String? provider;
+  String? providerAccessToken;
   String? authorizationCode;
   String? codeVerifier;
 
   @override
-  Future<AuthSession> login(
-    String provider,
-    String authorizationCode,
-    String codeVerifier,
-  ) async {
-    this.provider = provider;
-    this.authorizationCode = authorizationCode;
-    this.codeVerifier = codeVerifier;
+  Future<AuthSession> login(AuthLoginRequest request) async {
+    provider = request.provider;
+    providerAccessToken = request.providerAccessToken;
+    authorizationCode = request.authorizationCode;
+    codeVerifier = request.codeVerifier;
     return session;
   }
 }
@@ -150,9 +148,8 @@ final class _FakeOAuthAuthorizationClient implements OAuthAuthorizationClient {
   @override
   Future<OAuthAuthorizationResult> authorize(AuthProvider provider) async {
     this.provider = provider;
-    return const OAuthAuthorizationResult(
-      authorizationCode: 'authorization-code',
-      codeVerifier: 'code-verifier',
+    return const OAuthAuthorizationResult.kakao(
+      providerAccessToken: 'kakao-provider-access-token',
     );
   }
 }

@@ -3,6 +3,7 @@ import 'package:oncue_mobile/app/oncue_app.dart';
 import 'package:oncue_mobile/auth/application/auth_service.dart';
 import 'package:oncue_mobile/auth/data/auth_api_client.dart';
 import 'package:oncue_mobile/auth/data/oauth_authorization_client.dart';
+import 'package:oncue_mobile/auth/model/auth_login_request.dart';
 import 'package:oncue_mobile/auth/model/auth_provider.dart';
 import 'package:oncue_mobile/common/auth/auth_session.dart';
 
@@ -45,11 +46,7 @@ final class _FakeAuthApiClient implements AuthClient {
   final AuthSession session;
 
   @override
-  Future<AuthSession> login(
-    String provider,
-    String authorizationCode,
-    String codeVerifier,
-  ) async {
+  Future<AuthSession> login(AuthLoginRequest request) async {
     return session;
   }
 }
@@ -74,9 +71,8 @@ final class _FakeAuthSessionStore implements AuthSessionStore {
 final class _FakeOAuthAuthorizationClient implements OAuthAuthorizationClient {
   @override
   Future<OAuthAuthorizationResult> authorize(AuthProvider provider) async {
-    return const OAuthAuthorizationResult(
-      authorizationCode: 'authorization-code',
-      codeVerifier: 'code-verifier',
+    return const OAuthAuthorizationResult.kakao(
+      providerAccessToken: 'kakao-provider-access-token',
     );
   }
 }

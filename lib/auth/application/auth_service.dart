@@ -1,4 +1,5 @@
 import 'package:oncue_mobile/auth/data/auth_api_client.dart';
+import 'package:oncue_mobile/auth/model/auth_login_request.dart';
 import 'package:oncue_mobile/common/auth/auth_session.dart';
 import 'package:oncue_mobile/common/network/api_error.dart';
 
@@ -16,14 +17,9 @@ final class AuthService {
   final AuthClient _authClient;
   final AuthSessionStore _sessionStore;
 
-  Future<void> loginWithKakao({
-    required String authorizationCode,
-    required String codeVerifier,
-  }) async {
+  Future<void> loginWithKakao({required String providerAccessToken}) async {
     await _login(
-      provider: 'kakao',
-      authorizationCode: authorizationCode,
-      codeVerifier: codeVerifier,
+      AuthLoginRequest.kakao(providerAccessToken: providerAccessToken),
     );
   }
 
@@ -32,9 +28,10 @@ final class AuthService {
     required String codeVerifier,
   }) async {
     await _login(
-      provider: 'x',
-      authorizationCode: authorizationCode,
-      codeVerifier: codeVerifier,
+      AuthLoginRequest.x(
+        authorizationCode: authorizationCode,
+        codeVerifier: codeVerifier,
+      ),
     );
   }
 
@@ -53,16 +50,8 @@ final class AuthService {
     }
   }
 
-  Future<void> _login({
-    required String provider,
-    required String authorizationCode,
-    required String codeVerifier,
-  }) async {
-    final session = await _authClient.login(
-      provider,
-      authorizationCode,
-      codeVerifier,
-    );
+  Future<void> _login(AuthLoginRequest request) async {
+    final session = await _authClient.login(request);
     await _sessionStore.save(session);
   }
 }

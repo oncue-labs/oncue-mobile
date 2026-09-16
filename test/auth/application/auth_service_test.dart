@@ -1,6 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:oncue_mobile/auth/application/auth_service.dart';
 import 'package:oncue_mobile/auth/data/auth_api_client.dart';
+import 'package:oncue_mobile/auth/model/auth_login_request.dart';
 import 'package:oncue_mobile/common/auth/auth_session.dart';
 import 'package:oncue_mobile/common/network/api_error.dart';
 
@@ -11,19 +12,35 @@ void main() {
     final service = AuthService(authApiClient, sessionStore);
 
     await service.loginWithKakao(
-      authorizationCode: 'authorization-code',
-      codeVerifier: 'pkce-code-verifier',
+      providerAccessToken: 'kakao-provider-access-token',
     );
 
     expect(authApiClient.provider, 'kakao');
-    expect(authApiClient.authorizationCode, 'authorization-code');
-    expect(authApiClient.codeVerifier, 'pkce-code-verifier');
+    expect(authApiClient.providerAccessToken, 'kakao-provider-access-token');
     expect(sessionStore.savedSession?.accessToken, 'access-token');
     expect(
       sessionStore.savedSession?.expiresAt,
       DateTime.parse('2026-09-15T10:01:00Z'),
     );
   });
+
+  test(
+    'saves an X login session after sending authorization code and verifier',
+    () async {
+      final authApiClient = _FakeAuthApiClient(session: _session());
+      final sessionStore = _FakeAuthSessionStore();
+      final service = AuthService(authApiClient, sessionStore);
+
+      await service.loginWithX(
+        authorizationCode: 'x-authorization-code',
+        codeVerifier: 'x-code-verifier',
+      );
+
+      expect(authApiClient.provider, 'x');
+      expect(authApiClient.authorizationCode, 'x-authorization-code');
+      expect(authApiClient.codeVerifier, 'x-code-verifier');
+    },
+  );
 
   test(
     'clears the saved session when an authenticated request returns 401',
@@ -84,18 +101,16 @@ final class _FakeAuthApiClient implements AuthClient {
 
   final AuthSession session;
   String? provider;
+  String? providerAccessToken;
   String? authorizationCode;
   String? codeVerifier;
 
   @override
-  Future<AuthSession> login(
-    String provider,
-    String authorizationCode,
-    String codeVerifier,
-  ) async {
-    this.provider = provider;
-    this.authorizationCode = authorizationCode;
-    this.codeVerifier = codeVerifier;
+  Future<AuthSession> login(AuthLoginRequest request) async {
+    provider = request.provider;
+    providerAccessToken = request.providerAccessToken;
+    authorizationCode = request.authorizationCode;
+    codeVerifier = request.codeVerifier;
     return session;
   }
 }

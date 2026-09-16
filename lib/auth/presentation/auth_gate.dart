@@ -80,13 +80,12 @@ final class _AuthGateState extends State<AuthGate> {
     switch (provider) {
       case AuthProvider.kakao:
         await widget.authService.loginWithKakao(
-          authorizationCode: authorization.authorizationCode,
-          codeVerifier: authorization.codeVerifier,
+          providerAccessToken: authorization.providerAccessToken!,
         );
       case AuthProvider.x:
         await widget.authService.loginWithX(
-          authorizationCode: authorization.authorizationCode,
-          codeVerifier: authorization.codeVerifier,
+          authorizationCode: authorization.authorizationCode!,
+          codeVerifier: authorization.codeVerifier!,
         );
     }
 
