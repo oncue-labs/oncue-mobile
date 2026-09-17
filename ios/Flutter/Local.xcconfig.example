@@ -1,0 +1,3 @@
+// Copy this file to Local.xcconfig and replace the value locally.
+// Local.xcconfig is ignored by Git.
+KAKAO_NATIVE_APP_KEY=replace-with-local-kakao-native-app-key

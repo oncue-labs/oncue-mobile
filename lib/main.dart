@@ -1,8 +1,79 @@
 import 'package:flutter/material.dart';
 import 'package:oncue_mobile/app/oncue_app.dart';
+import 'package:flutter_appauth/flutter_appauth.dart';
+import 'package:kakao_flutter_sdk_user/kakao_flutter_sdk_user.dart';
+import 'package:oncue_mobile/auth/application/auth_service.dart';
+import 'package:oncue_mobile/auth/data/auth_api_client.dart';
+import 'package:oncue_mobile/auth/data/kakao_oauth_authorization_client.dart';
+import 'package:oncue_mobile/auth/data/oauth_authorization_router.dart';
+import 'package:oncue_mobile/auth/data/secure_auth_session_store.dart';
+import 'package:oncue_mobile/auth/data/x_oauth_authorization_client.dart';
+import 'package:oncue_mobile/common/config/app_config.dart';
+import 'package:oncue_mobile/common/network/http_api_client.dart';
 
-void main() {
-  runApp(const OnCueApp());
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  final config = AppConfig.fromEnvironment();
+  if (!config.isReady) {
+    runApp(const _ConfigurationRequiredApp());
+    return;
+  }
+
+  await KakaoSdk.init(
+    nativeAppKey: config.kakaoNativeAppKey,
+    customScheme: config.kakaoCustomScheme,
+  );
+
+  final apiClient = HttpApiClient(baseUri: config.apiBaseUri);
+  final authService = AuthService(
+    AuthApiClient(apiClient),
+    SecureAuthSessionStore(FlutterAuthSecureStorage()),
+  );
+  final authorizationClient = OAuthAuthorizationRouter(
+    kakao: KakaoOAuthAuthorizationClient(
+      loadAccessToken: () async {
+        final token = await UserApi.instance.loginWithKakaoAccount();
+        return token.accessToken;
+      },
+    ),
+    x: XOAuthAuthorizationClient.fromAppAuth(
+      configuration: XOAuthConfiguration(
+        clientId: config.xClientId,
+        redirectUri: config.xRedirectUri,
+      ),
+      appAuth: FlutterAppAuth(),
+    ),
+  );
+
+  runApp(
+    OnCueApp(
+      authService: authService,
+      authorizationClient: authorizationClient,
+    ),
+  );
+}
+
+final class _ConfigurationRequiredApp extends StatelessWidget {
+  const _ConfigurationRequiredApp();
+
+  @override
+  Widget build(BuildContext context) {
+    return const MaterialApp(
+      home: Scaffold(
+        body: Center(
+          child: Padding(
+            padding: EdgeInsets.all(24),
+            child: Text(
+              '앱 실행 설정이 없습니다.\n'
+              'ONCUE_API_BASE_URL, ONCUE_KAKAO_NATIVE_APP_KEY, '
+              'ONCUE_X_CLIENT_ID를 주입해 실행해주세요.',
+              textAlign: TextAlign.center,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
 }
 
 /*
