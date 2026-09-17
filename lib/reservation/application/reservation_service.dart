@@ -59,14 +59,16 @@ final class ReservationService {
     );
   }
 
-  Future<Reservation> cancel(
-    String reservationId, {
-    String? accessToken,
-  }) {
-    return _reservationClient.cancel(
-      reservationId,
-      accessToken: accessToken,
-    );
+  Future<List<Reservation>> list({String? accessToken}) {
+    return _reservationClient.list(accessToken: accessToken);
+  }
+
+  Future<Reservation> get(String reservationId, {String? accessToken}) {
+    return _reservationClient.get(reservationId, accessToken: accessToken);
+  }
+
+  Future<Reservation> cancel(String reservationId, {String? accessToken}) {
+    return _reservationClient.cancel(reservationId, accessToken: accessToken);
   }
 
   Future<CallPermissionStatus> requestMissingPermissions() {

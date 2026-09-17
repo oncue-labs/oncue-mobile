@@ -9,7 +9,11 @@ import 'package:oncue_mobile/auth/data/oauth_authorization_router.dart';
 import 'package:oncue_mobile/auth/data/secure_auth_session_store.dart';
 import 'package:oncue_mobile/auth/data/x_oauth_authorization_client.dart';
 import 'package:oncue_mobile/common/config/app_config.dart';
+import 'package:oncue_mobile/common/device/device_time_zone_provider.dart';
 import 'package:oncue_mobile/common/network/http_api_client.dart';
+import 'package:oncue_mobile/common/permissions/method_channel_call_permission_service.dart';
+import 'package:oncue_mobile/reservation/application/reservation_service.dart';
+import 'package:oncue_mobile/reservation/data/reservation_api_client.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -28,6 +32,10 @@ Future<void> main() async {
   final authService = AuthService(
     AuthApiClient(apiClient),
     SecureAuthSessionStore(FlutterAuthSecureStorage()),
+  );
+  final reservationService = ReservationService(
+    ReservationApiClient(apiClient),
+    const MethodChannelCallPermissionService(),
   );
   final authorizationClient = OAuthAuthorizationRouter(
     kakao: KakaoOAuthAuthorizationClient(
@@ -49,6 +57,8 @@ Future<void> main() async {
     OnCueApp(
       authService: authService,
       authorizationClient: authorizationClient,
+      reservationService: reservationService,
+      timeZoneProvider: const MethodChannelDeviceTimeZoneProvider(),
     ),
   );
 }

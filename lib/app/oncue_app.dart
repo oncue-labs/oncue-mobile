@@ -47,8 +47,14 @@ final class OnCueApp extends StatelessWidget {
   }
 
   OnCueHomePage _buildHome(String? sessionAccessToken) {
+    final reservationService = this.reservationService;
+    final reservationLoader =
+        loadReservations ??
+        (reservationService == null
+            ? null
+            : () => reservationService.list(accessToken: sessionAccessToken));
     return OnCueHomePage(
-      loadReservations: loadReservations,
+      loadReservations: reservationLoader,
       reservationService: reservationService,
       timeZoneProvider: timeZoneProvider,
       accessToken: sessionAccessToken,

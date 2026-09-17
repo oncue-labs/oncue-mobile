@@ -1,4 +1,5 @@
 import Flutter
+import AVFoundation
 import UIKit
 
 @main
@@ -23,6 +24,48 @@ import UIKit
         return
       }
       result(TimeZone.current.identifier)
+    }
+
+    let callPermissionChannel = FlutterMethodChannel(
+      name: "oncue/call_permissions",
+      binaryMessenger: engineBridge.applicationRegistrar.messenger()
+    )
+    callPermissionChannel.setMethodCallHandler { call, result in
+      switch call.method {
+      case "checkRequiredPermissions":
+        result(Self.callPermissionStatus())
+      case "requestMissingPermissions":
+        AVAudioSession.sharedInstance().requestRecordPermission { granted in
+          DispatchQueue.main.async {
+            result(granted ? "ready" : "permissionRequired")
+          }
+        }
+      case "openSettings":
+        guard let settingsUrl = URL(string: UIApplication.openSettingsURLString) else {
+          result(FlutterError(
+            code: "SETTINGS_UNAVAILABLE",
+            message: "The application settings URL is unavailable.",
+            details: nil
+          ))
+          return
+        }
+        UIApplication.shared.open(settingsUrl) { _ in
+          result(nil)
+        }
+      default:
+        result(FlutterMethodNotImplemented)
+      }
+    }
+  }
+
+  private static func callPermissionStatus() -> String {
+    switch AVAudioSession.sharedInstance().recordPermission {
+    case .granted:
+      return "ready"
+    case .denied, .undetermined:
+      return "permissionRequired"
+    @unknown default:
+      return "permissionRequired"
     }
   }
 }
