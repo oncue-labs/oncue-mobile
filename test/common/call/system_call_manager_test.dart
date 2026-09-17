@@ -12,10 +12,15 @@ void main() {
       displayName: 'Santa',
       callType: 'voice',
     );
+    final expectedCall = IncomingCallDisplayInfo(
+      callSessionId: 'call-session-123',
+      displayName: 'Santa',
+      callType: 'voice',
+    );
 
     await manager.presentIncomingCall(call);
 
-    expect(manager.presentedCalls, [call]);
+    expect(manager.presentedCalls, [expectedCall]);
   });
 
   test('publishes lifecycle events with the call session id', () async {

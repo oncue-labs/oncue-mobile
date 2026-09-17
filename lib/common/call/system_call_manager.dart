@@ -9,6 +9,17 @@ final class IncomingCallDisplayInfo {
   final String callSessionId;
   final String displayName;
   final String callType;
+
+  @override
+  bool operator ==(Object other) {
+    return other is IncomingCallDisplayInfo &&
+        other.callSessionId == callSessionId &&
+        other.displayName == displayName &&
+        other.callType == callType;
+  }
+
+  @override
+  int get hashCode => Object.hash(callSessionId, displayName, callType);
 }
 
 /// Common contract implemented by iOS CallKit and the future Android adapter.
