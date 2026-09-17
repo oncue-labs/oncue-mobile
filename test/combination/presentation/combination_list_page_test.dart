@@ -40,7 +40,7 @@ void main() {
     expect(
       find.byKey(
         const ValueKey(
-          'combination-card-travel-friend-travel-friend-introduction',
+          'combination-card-friend-travel-friend-introduction',
         ),
       ),
       findsOneWidget,

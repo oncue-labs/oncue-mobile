@@ -39,7 +39,7 @@ abstract final class MvpCallCombinations {
       callGoalPlaceholder: '예: 친구가 급한 일이 생겼다고 생각하고 집에 빨리 돌아가게 해 주세요.',
     ),
     CallCombinationCard(
-      personaKey: 'travel-friend',
+      personaKey: 'friend',
       scenarioKey: 'travel-friend-introduction',
       personaName: '여행 동행 친구',
       scenarioSummary: '부모님과 통화할 때 여행 동행 친구처럼 자연스럽게 대화해요.',
