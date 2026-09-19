@@ -12,7 +12,11 @@ abstract interface class AuthSessionStore {
   Future<void> clear();
 }
 
-final class AuthService {
+abstract interface class AuthSessionProvider {
+  AuthSession? get currentSession;
+}
+
+final class AuthService implements AuthSessionProvider {
   AuthService(
     this._authClient,
     this._sessionStore, {
@@ -22,6 +26,10 @@ final class AuthService {
   final AuthClient _authClient;
   final AuthSessionStore _sessionStore;
   final PushDeviceSessionService? _pushDeviceSessionService;
+  AuthSession? _currentSession;
+
+  @override
+  AuthSession? get currentSession => _currentSession;
 
   Future<void> loginWithKakao({required String providerAccessToken}) async {
     await _login(
@@ -42,13 +50,14 @@ final class AuthService {
   }
 
   Future<void> logout() async {
-    final session = await _sessionStore.load();
+    final session = _currentSession ?? await _sessionStore.load();
     try {
       if (session != null) {
         await _detachPushDevice(session.accessToken);
       }
     } finally {
       await _sessionStore.clear();
+      _currentSession = null;
     }
   }
 
@@ -57,6 +66,7 @@ final class AuthService {
     if (session != null) {
       await _attachPushDevice(session.accessToken);
     }
+    _currentSession = session;
     return session;
   }
 
@@ -70,6 +80,7 @@ final class AuthService {
           await _detachPushDevice(session.accessToken);
         }
         await _sessionStore.clear();
+        _currentSession = null;
       }
       rethrow;
     }
@@ -78,6 +89,7 @@ final class AuthService {
   Future<void> _login(AuthLoginRequest request) async {
     final session = await _authClient.login(request);
     await _sessionStore.save(session);
+    _currentSession = session;
     await _attachPushDevice(session.accessToken);
   }
 

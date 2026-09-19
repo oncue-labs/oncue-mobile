@@ -17,7 +17,7 @@ void main() {
     await tester.pumpWidget(
       _testApp(
         authService: _authService(savedSession: session),
-        homeBuilder: (restoredSession) => Text(
+        homeBuilder: (restoredSession, _) => Text(
           'home:${restoredSession.accessToken}',
           key: const ValueKey('authenticated-home'),
         ),
@@ -36,7 +36,7 @@ void main() {
     await tester.pumpWidget(
       _testApp(
         authService: _authService(),
-        homeBuilder: (_) => const SizedBox(),
+        homeBuilder: (_, _) => const SizedBox(),
       ),
     );
     await tester.pumpAndSettle();
@@ -56,7 +56,7 @@ void main() {
       _testApp(
         authService: authService,
         authorizationClient: authorizationClient,
-        homeBuilder: (session) => Text(
+        homeBuilder: (session, _) => Text(
           'home:${session.accessToken}',
           key: const ValueKey('authenticated-home'),
         ),
@@ -72,12 +72,43 @@ void main() {
     expect(authApiClient.providerAccessToken, 'kakao-provider-access-token');
     expect(find.byKey(const ValueKey('authenticated-home')), findsOneWidget);
   });
+
+  testWidgets('logs out and returns to the login screen', (
+    WidgetTester tester,
+  ) async {
+    final store = _FakeAuthSessionStore(savedSession: _session());
+    final authService = AuthService(
+      _FakeAuthApiClient(session: _session()),
+      store,
+    );
+
+    await tester.pumpWidget(
+      _testApp(
+        authService: authService,
+        homeBuilder: (session, onLogout) => TextButton(
+          key: const ValueKey('logout-test-button'),
+          onPressed: () => onLogout(),
+          child: Text(session.accessToken),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const ValueKey('logout-test-button')));
+    await tester.pumpAndSettle();
+
+    expect(store.savedSession, isNull);
+    expect(find.text('OnCue 로그인'), findsOneWidget);
+  });
 }
 
 Widget _testApp({
   required AuthService authService,
   OAuthAuthorizationClient? authorizationClient,
-  required Widget Function(AuthSession session) homeBuilder,
+  required Widget Function(
+    AuthSession session,
+    Future<void> Function() onLogout,
+  ) homeBuilder,
 }) {
   return MaterialApp(
     home: AuthGate(

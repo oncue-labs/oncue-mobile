@@ -15,7 +15,10 @@ final class AuthGate extends StatefulWidget {
 
   final AuthService authService;
   final OAuthAuthorizationClient authorizationClient;
-  final Widget Function(AuthSession session) homeBuilder;
+  final Widget Function(
+    AuthSession session,
+    Future<void> Function() onLogout,
+  ) homeBuilder;
 
   @override
   State<AuthGate> createState() => _AuthGateState();
@@ -51,7 +54,7 @@ final class _AuthGateState extends State<AuthGate> {
       return LoginPage(onLogin: _login);
     }
 
-    return widget.homeBuilder(session);
+    return widget.homeBuilder(session, _logout);
   }
 
   Future<void> _restoreSession() async {
@@ -97,5 +100,13 @@ final class _AuthGateState extends State<AuthGate> {
       return;
     }
     setState(() => _session = session);
+  }
+
+  Future<void> _logout() async {
+    await widget.authService.logout();
+    if (!mounted) {
+      return;
+    }
+    setState(() => _session = null);
   }
 }
