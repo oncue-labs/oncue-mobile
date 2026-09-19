@@ -26,6 +26,17 @@ final class HeaderBanner extends StatelessWidget {
         constraints: const BoxConstraints(minHeight: 84),
         padding: const EdgeInsets.symmetric(horizontal: 20),
         alignment: Alignment.centerLeft,
+        decoration: BoxDecoration(
+          gradient: RadialGradient(
+            center: const Alignment(-0.7, -2.2),
+            radius: 1.1,
+            colors: [
+              theme.colorScheme.primary.withValues(alpha: 0.24),
+              theme.colorScheme.primary.withValues(alpha: 0),
+            ],
+            stops: const [0, 0.7],
+          ),
+        ),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [

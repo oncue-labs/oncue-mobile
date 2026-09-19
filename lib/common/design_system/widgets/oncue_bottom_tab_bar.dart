@@ -37,7 +37,10 @@ final class OnCueBottomTabBar extends StatelessWidget {
     return ClipRRect(
       borderRadius: BorderRadius.circular(26),
       child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 22, sigmaY: 22),
+        filter: ImageFilter.compose(
+          outer: ColorFilter.matrix(_saturationMatrix(1.6)),
+          inner: ImageFilter.blur(sigmaX: 22, sigmaY: 22),
+        ),
         child: Container(
           padding: const EdgeInsets.all(8),
           decoration: BoxDecoration(
@@ -64,6 +67,23 @@ final class OnCueBottomTabBar extends StatelessWidget {
       ),
     );
   }
+}
+
+/// Standard luminance-preserving saturation matrix, matching CSS
+/// `filter: saturate(<saturation>)`.
+List<double> _saturationMatrix(double saturation) {
+  const lumaR = 0.213;
+  const lumaG = 0.715;
+  const lumaB = 0.072;
+  final sr = (1 - saturation) * lumaR;
+  final sg = (1 - saturation) * lumaG;
+  final sb = (1 - saturation) * lumaB;
+  return [
+    sr + saturation, sg, sb, 0, 0,
+    sr, sg + saturation, sb, 0, 0,
+    sr, sg, sb + saturation, 0, 0,
+    0, 0, 0, 1, 0,
+  ];
 }
 
 final class _TabButton extends StatelessWidget {

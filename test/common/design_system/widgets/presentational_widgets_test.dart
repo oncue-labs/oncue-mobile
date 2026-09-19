@@ -125,6 +125,23 @@ void main() {
     );
   });
 
+  testWidgets('HeaderBanner paints a warm radial glow behind its title', (
+    tester,
+  ) async {
+    await tester.pumpWidget(_harness(const HeaderBanner(title: '전화 예약')));
+
+    final container = tester.widget<Container>(
+      find
+          .descendant(
+            of: find.byType(HeaderBanner),
+            matching: find.byType(Container),
+          )
+          .first,
+    );
+    final decoration = container.decoration! as BoxDecoration;
+    expect(decoration.gradient, isA<RadialGradient>());
+  });
+
   testWidgets('EmptyState renders an optional description below the message', (
     tester,
   ) async {

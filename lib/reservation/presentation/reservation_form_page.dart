@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:oncue_mobile/combination/model/call_combination_card.dart';
 import 'package:oncue_mobile/common/design_system/oncue_colors.dart';
 import 'package:oncue_mobile/common/design_system/widgets/app_card.dart';
+import 'package:oncue_mobile/common/design_system/widgets/pill_note.dart';
 import 'package:oncue_mobile/common/design_system/widgets/primary_button.dart';
 import 'package:oncue_mobile/common/network/api_error.dart';
 import 'package:oncue_mobile/common/permissions/permission_guide_page.dart';
@@ -149,10 +150,7 @@ final class _ReservationFormPageState extends State<ReservationFormPage> {
             ),
           ),
           const SizedBox(height: 12),
-          Text(
-            '예약 시각은 정확히 보장되지 않을 수 있어요.',
-            style: TextStyle(color: theme.colorScheme.onSurfaceVariant),
-          ),
+          const PillNote('예약 시각은 정확히 보장되지 않을 수 있어요.'),
           if (_errorMessage case final error?) ...[
             const SizedBox(height: 16),
             Container(

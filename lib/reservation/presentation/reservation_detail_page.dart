@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:oncue_mobile/combination/model/call_combination_card.dart';
 import 'package:oncue_mobile/common/design_system/oncue_colors.dart';
+import 'package:oncue_mobile/common/design_system/widgets/pill_note.dart';
 import 'package:oncue_mobile/common/design_system/widgets/status_chip.dart';
 import 'package:oncue_mobile/reservation/model/reservation.dart';
 
@@ -99,10 +100,7 @@ final class ReservationDetailPage extends StatelessWidget {
           const SizedBox(height: 4),
           Text(reservation.callGoal ?? '입력하지 않음'),
           const SizedBox(height: 16),
-          Text(
-            '예약 시각은 정확히 보장되지 않을 수 있어요.',
-            style: TextStyle(color: theme.colorScheme.onSurfaceVariant),
-          ),
+          const PillNote('예약 시각은 정확히 보장되지 않을 수 있어요.'),
           if (onStartTestCall != null) ...[
             const SizedBox(height: 24),
             OutlinedButton.icon(
