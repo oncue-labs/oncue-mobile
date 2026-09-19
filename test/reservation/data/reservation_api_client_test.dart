@@ -68,7 +68,10 @@ void main() {
     );
     final client = ReservationApiClient(apiClient);
 
-    final reservation = await client.cancel('1001', accessToken: 'access-token');
+    final reservation = await client.cancel(
+      '1001',
+      accessToken: 'access-token',
+    );
 
     expect(apiClient.method, 'POST');
     expect(apiClient.path, '/api/v1/reservations/1001/cancel');
@@ -110,10 +113,7 @@ final class _RecordingApiClient implements ApiClient {
   String? accessToken;
 
   @override
-  Future<Object?> getJson(
-    String requestPath, {
-    String? accessToken,
-  }) async {
+  Future<Object?> getJson(String requestPath, {String? accessToken}) async {
     method = 'GET';
     path = requestPath;
     this.accessToken = accessToken;
@@ -131,6 +131,20 @@ final class _RecordingApiClient implements ApiClient {
     body = requestBody;
     this.accessToken = accessToken;
     return response! as Map<String, dynamic>;
+  }
+
+  @override
+  Future<Map<String, dynamic>> putJson(
+    String requestPath, {
+    Map<String, dynamic>? requestBody,
+    String? accessToken,
+  }) async {
+    throw UnimplementedError();
+  }
+
+  @override
+  Future<Object?> deleteJson(String requestPath, {String? accessToken}) async {
+    throw UnimplementedError();
   }
 
   @override

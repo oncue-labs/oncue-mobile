@@ -4,12 +4,18 @@ import 'package:oncue_mobile/auth/data/auth_api_client.dart';
 import 'package:oncue_mobile/auth/model/auth_login_request.dart';
 import 'package:oncue_mobile/common/auth/auth_session.dart';
 import 'package:oncue_mobile/common/network/api_error.dart';
+import 'package:oncue_mobile/push/application/push_device_session_service.dart';
 
 void main() {
   test('saves a Kakao login session after a successful login', () async {
     final authApiClient = _FakeAuthApiClient(session: _session());
     final sessionStore = _FakeAuthSessionStore();
-    final service = AuthService(authApiClient, sessionStore);
+    final pushService = _FakePushDeviceSessionService();
+    final service = AuthService(
+      authApiClient,
+      sessionStore,
+      pushDeviceSessionService: pushService,
+    );
 
     await service.loginWithKakao(
       providerAccessToken: 'kakao-provider-access-token',
@@ -22,6 +28,7 @@ void main() {
       sessionStore.savedSession?.expiresAt,
       DateTime.parse('2026-09-15T10:01:00Z'),
     );
+    expect(pushService.attachedAccessTokens, ['access-token']);
   });
 
   test(
@@ -64,13 +71,16 @@ void main() {
 
   test('clears the saved session explicitly on logout', () async {
     final sessionStore = _FakeAuthSessionStore(savedSession: _session());
+    final pushService = _FakePushDeviceSessionService();
     final service = AuthService(
       _FakeAuthApiClient(session: _session()),
       sessionStore,
+      pushDeviceSessionService: pushService,
     );
 
     await service.logout();
 
+    expect(pushService.detachedAccessTokens, ['access-token']);
     expect(sessionStore.clearCount, 1);
   });
 
@@ -133,5 +143,20 @@ final class _FakeAuthSessionStore implements AuthSessionStore {
   @override
   Future<void> save(AuthSession session) async {
     savedSession = session;
+  }
+}
+
+final class _FakePushDeviceSessionService implements PushDeviceSessionService {
+  final attachedAccessTokens = <String>[];
+  final detachedAccessTokens = <String>[];
+
+  @override
+  Future<void> attachSession(String accessToken) async {
+    attachedAccessTokens.add(accessToken);
+  }
+
+  @override
+  Future<void> detachSession(String accessToken) async {
+    detachedAccessTokens.add(accessToken);
   }
 }

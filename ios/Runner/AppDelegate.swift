@@ -12,9 +12,17 @@ import UIKit
     return bridge
   }()
 
-  private lazy var voipPushHandler = OnCueVoIPPushHandler(callKitBridge: callKitBridge)
+  private lazy var voipPushHandler: OnCueVoIPPushHandler = {
+    let handler = OnCueVoIPPushHandler(callKitBridge: callKitBridge)
+    handler.onTokenUpdated = { [weak self] token in
+      self?.publishPushToken(token)
+    }
+    return handler
+  }()
   private var systemCallChannel: FlutterMethodChannel?
+  private var pushDeviceChannel: FlutterMethodChannel?
   private var pendingSystemCallEvents: [(method: String, callSessionId: String)] = []
+  private var pendingPushToken: String?
 
   override func application(
     _ application: UIApplication,
@@ -80,6 +88,23 @@ import UIKit
       self?.handleSystemCallMethod(call, result: result)
     }
     flushPendingSystemCallEvents()
+
+    let pushDeviceChannel = FlutterMethodChannel(
+      name: "oncue/push_devices",
+      binaryMessenger: engineBridge.applicationRegistrar.messenger()
+    )
+    self.pushDeviceChannel = pushDeviceChannel
+    pushDeviceChannel.setMethodCallHandler { [weak self] call, result in
+      guard call.method == "currentVoipPushToken" else {
+        result(FlutterMethodNotImplemented)
+        return
+      }
+      result(self?.voipPushHandler.currentDeviceToken)
+    }
+    if let currentDeviceToken = voipPushHandler.currentDeviceToken {
+      pendingPushToken = currentDeviceToken
+    }
+    flushPendingPushToken()
   }
 
   private func handleSystemCallMethod(
@@ -166,6 +191,22 @@ import UIKit
     pendingEvents.forEach { event in
       publishSystemCallEvent(method: event.method, callSessionId: event.callSessionId)
     }
+  }
+
+  private func publishPushToken(_ token: String) {
+    guard let pushDeviceChannel = pushDeviceChannel else {
+      pendingPushToken = token
+      return
+    }
+    pushDeviceChannel.invokeMethod("onPushTokenUpdated", arguments: token)
+  }
+
+  private func flushPendingPushToken() {
+    guard let pendingPushToken else {
+      return
+    }
+    self.pendingPushToken = nil
+    publishPushToken(pendingPushToken)
   }
 
   private static func callPermissionStatus() -> String {

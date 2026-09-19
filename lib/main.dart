@@ -14,6 +14,10 @@ import 'package:oncue_mobile/common/network/http_api_client.dart';
 import 'package:oncue_mobile/common/permissions/method_channel_call_permission_service.dart';
 import 'package:oncue_mobile/reservation/application/reservation_service.dart';
 import 'package:oncue_mobile/reservation/data/reservation_api_client.dart';
+import 'package:oncue_mobile/push/application/push_device_service.dart';
+import 'package:oncue_mobile/push/data/method_channel_push_device_token_source.dart';
+import 'package:oncue_mobile/push/data/push_device_api_client.dart';
+import 'package:oncue_mobile/push/model/push_environment.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -29,9 +33,15 @@ Future<void> main() async {
   );
 
   final apiClient = HttpApiClient(baseUri: config.apiBaseUri);
+  final pushDeviceService = PushDeviceService(
+    PushDeviceApiClient(apiClient),
+    MethodChannelPushDeviceTokenSource(),
+    environment: PushEnvironment.fromWire(config.apnsEnvironment),
+  );
   final authService = AuthService(
     AuthApiClient(apiClient),
     SecureAuthSessionStore(FlutterAuthSecureStorage()),
+    pushDeviceSessionService: pushDeviceService,
   );
   final reservationService = ReservationService(
     ReservationApiClient(apiClient),
@@ -76,7 +86,7 @@ final class _ConfigurationRequiredApp extends StatelessWidget {
             child: Text(
               '앱 실행 설정이 없습니다.\n'
               'ONCUE_API_BASE_URL, ONCUE_KAKAO_NATIVE_APP_KEY, '
-              'ONCUE_X_CLIENT_ID를 주입해 실행해주세요.',
+              'ONCUE_X_CLIENT_ID, ONCUE_APNS_ENVIRONMENT를 주입해 실행해주세요.',
               textAlign: TextAlign.center,
             ),
           ),

@@ -4,6 +4,8 @@ import PushKit
 final class OnCueVoIPPushHandler: NSObject, PKPushRegistryDelegate {
   private let callKitBridge: OnCueCallKitBridge
   private let pushRegistry: PKPushRegistry
+  private(set) var currentDeviceToken: String?
+  var onTokenUpdated: ((String) -> Void)?
 
   init(callKitBridge: OnCueCallKitBridge) {
     self.callKitBridge = callKitBridge
@@ -20,14 +22,27 @@ final class OnCueVoIPPushHandler: NSObject, PKPushRegistryDelegate {
     didUpdate pushCredentials: PKPushCredentials,
     for type: PKPushType
   ) {
-    // Device token registration is added with the push-device API.
+    guard type == .voIP else {
+      return
+    }
+    let deviceToken = pushCredentials.token
+      .map { String(format: "%02x", $0) }
+      .joined()
+    guard !deviceToken.isEmpty else {
+      return
+    }
+    currentDeviceToken = deviceToken
+    onTokenUpdated?(deviceToken)
   }
 
   func pushRegistry(
     _ registry: PKPushRegistry,
     didInvalidatePushTokenFor type: PKPushType
   ) {
-    // The backend device-token deletion API is added with device registration.
+    guard type == .voIP else {
+      return
+    }
+    currentDeviceToken = nil
   }
 
   func pushRegistry(

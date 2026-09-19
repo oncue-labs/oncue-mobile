@@ -37,10 +37,7 @@ final class _RecordingApiClient implements ApiClient {
   Map<String, dynamic>? body;
 
   @override
-  Future<Object?> getJson(
-    String requestPath, {
-    String? accessToken,
-  }) async {
+  Future<Object?> getJson(String requestPath, {String? accessToken}) async {
     throw UnimplementedError();
   }
 
@@ -50,6 +47,20 @@ final class _RecordingApiClient implements ApiClient {
     Map<String, dynamic>? requestBody,
     String? accessToken,
   }) async {
+    throw UnimplementedError();
+  }
+
+  @override
+  Future<Map<String, dynamic>> putJson(
+    String requestPath, {
+    Map<String, dynamic>? requestBody,
+    String? accessToken,
+  }) async {
+    throw UnimplementedError();
+  }
+
+  @override
+  Future<Object?> deleteJson(String requestPath, {String? accessToken}) async {
     throw UnimplementedError();
   }
 

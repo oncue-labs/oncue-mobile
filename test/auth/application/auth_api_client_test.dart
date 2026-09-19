@@ -79,6 +79,20 @@ final class _RecordingApiClient implements ApiClient {
   }
 
   @override
+  Future<Map<String, dynamic>> putJson(
+    String requestPath, {
+    Map<String, dynamic>? requestBody,
+    String? accessToken,
+  }) async {
+    throw UnimplementedError();
+  }
+
+  @override
+  Future<Object?> deleteJson(String requestPath, {String? accessToken}) async {
+    throw UnimplementedError();
+  }
+
+  @override
   Future<Map<String, dynamic>> postJson(
     String requestPath, {
     Map<String, dynamic>? requestBody,

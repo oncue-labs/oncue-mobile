@@ -28,6 +28,17 @@ abstract interface class JsonHttpTransport {
     required Map<String, String> headers,
     Map<String, dynamic>? body,
   });
+
+  Future<JsonHttpResponse> putJson(
+    Uri uri, {
+    required Map<String, String> headers,
+    Map<String, dynamic>? body,
+  });
+
+  Future<JsonHttpResponse> deleteJson(
+    Uri uri, {
+    required Map<String, String> headers,
+  });
 }
 
 final class IoJsonHttpTransport implements JsonHttpTransport {
@@ -62,6 +73,23 @@ final class IoJsonHttpTransport implements JsonHttpTransport {
     return _send('PATCH', uri, headers: headers, body: body);
   }
 
+  @override
+  Future<JsonHttpResponse> putJson(
+    Uri uri, {
+    required Map<String, String> headers,
+    Map<String, dynamic>? body,
+  }) {
+    return _send('PUT', uri, headers: headers, body: body);
+  }
+
+  @override
+  Future<JsonHttpResponse> deleteJson(
+    Uri uri, {
+    required Map<String, String> headers,
+  }) {
+    return _send('DELETE', uri, headers: headers);
+  }
+
   Future<JsonHttpResponse> _send(
     String method,
     Uri uri, {
@@ -84,20 +112,15 @@ final class IoJsonHttpTransport implements JsonHttpTransport {
 }
 
 final class HttpApiClient implements ApiClient {
-  HttpApiClient({
-    required Uri baseUri,
-    JsonHttpTransport? transport,
-  }) : _baseUri = baseUri,
-       _transport = transport ?? IoJsonHttpTransport();
+  HttpApiClient({required Uri baseUri, JsonHttpTransport? transport})
+    : _baseUri = baseUri,
+      _transport = transport ?? IoJsonHttpTransport();
 
   final Uri _baseUri;
   final JsonHttpTransport _transport;
 
   @override
-  Future<Object?> getJson(
-    String requestPath, {
-    String? accessToken,
-  }) async {
+  Future<Object?> getJson(String requestPath, {String? accessToken}) async {
     final response = await _transport.getJson(
       _baseUri.resolve(requestPath),
       headers: _headers(accessToken),
@@ -133,10 +156,31 @@ final class HttpApiClient implements ApiClient {
     return _decodeObjectResponse(response);
   }
 
+  @override
+  Future<Map<String, dynamic>> putJson(
+    String requestPath, {
+    Map<String, dynamic>? requestBody,
+    String? accessToken,
+  }) async {
+    final response = await _transport.putJson(
+      _baseUri.resolve(requestPath),
+      headers: _headers(accessToken),
+      body: requestBody,
+    );
+    return _decodeObjectResponse(response);
+  }
+
+  @override
+  Future<Object?> deleteJson(String requestPath, {String? accessToken}) async {
+    final response = await _transport.deleteJson(
+      _baseUri.resolve(requestPath),
+      headers: _headers(accessToken),
+    );
+    return _decodeResponse(response);
+  }
+
   Map<String, String> _headers(String? accessToken) {
-    final headers = <String, String>{
-      'content-type': 'application/json',
-    };
+    final headers = <String, String>{'content-type': 'application/json'};
     if (accessToken != null) {
       headers['authorization'] = 'Bearer $accessToken';
     }

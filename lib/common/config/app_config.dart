@@ -4,6 +4,7 @@ final class AppConfig {
     required this.kakaoNativeAppKey,
     required this.xClientId,
     this.xRedirectUri = defaultXRedirectUri,
+    this.apnsEnvironment = defaultApnsEnvironment,
   });
 
   factory AppConfig.fromEnvironment() {
@@ -18,21 +19,30 @@ final class AppConfig {
         'ONCUE_X_REDIRECT_URI',
         defaultValue: defaultXRedirectUri,
       ),
+      apnsEnvironment: String.fromEnvironment(
+        'ONCUE_APNS_ENVIRONMENT',
+        defaultValue: defaultApnsEnvironment,
+      ),
     );
   }
 
   static const defaultXRedirectUri = 'com.oncue.oncuemobile://oauth/x/callback';
+  static const defaultApnsEnvironment = 'SANDBOX';
 
   final String apiBaseUrl;
   final String kakaoNativeAppKey;
   final String xClientId;
   final String xRedirectUri;
 
+  /// APNs endpoint: SANDBOX for development builds, PRODUCTION for TestFlight.
+  final String apnsEnvironment;
+
   bool get isReady =>
       apiBaseUrl.trim().isNotEmpty &&
       kakaoNativeAppKey.trim().isNotEmpty &&
       xClientId.trim().isNotEmpty &&
-      xRedirectUri.trim().isNotEmpty;
+      xRedirectUri.trim().isNotEmpty &&
+      (apnsEnvironment == 'SANDBOX' || apnsEnvironment == 'PRODUCTION');
 
   Uri get apiBaseUri => Uri.parse(apiBaseUrl);
 
