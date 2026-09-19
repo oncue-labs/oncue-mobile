@@ -7,6 +7,7 @@ import 'package:oncue_mobile/call/application/incoming_call_coordinator.dart';
 import 'package:oncue_mobile/call/application/immediate_call_test_service.dart';
 import 'package:oncue_mobile/auth/data/oauth_authorization_client.dart';
 import 'package:oncue_mobile/auth/presentation/auth_gate.dart';
+import 'package:oncue_mobile/common/design_system/oncue_theme.dart';
 import 'package:oncue_mobile/common/device/device_time_zone_provider.dart';
 import 'package:oncue_mobile/reservation/application/reservation_service.dart';
 import 'package:oncue_mobile/reservation/model/reservation.dart';
@@ -65,9 +66,7 @@ final class _OnCueAppState extends State<OnCueApp> {
 
     return MaterialApp(
       title: 'OnCue',
-      theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.indigo),
-      ),
+      theme: buildOnCueTheme(),
       home: home,
     );
   }
