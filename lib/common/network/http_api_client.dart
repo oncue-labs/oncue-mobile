@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:developer' as developer;
 import 'dart:io';
 
 import 'package:oncue_mobile/common/network/api_client.dart';
@@ -99,11 +100,19 @@ final class IoJsonHttpTransport implements JsonHttpTransport {
     final request = await _httpClient.openUrl(method, uri);
     headers.forEach(request.headers.set);
     if (body != null) {
-      request.write(jsonEncode(body));
+      final bodyBytes = utf8.encode(jsonEncode(body));
+      request.contentLength = bodyBytes.length;
+      request.add(bodyBytes);
     }
 
     final response = await request.close();
     final responseBody = await utf8.decoder.bind(response).join();
+    if (response.statusCode < 200 || response.statusCode >= 300) {
+      developer.log(
+        '$method ${uri.path} returned HTTP ${response.statusCode}',
+        name: 'oncue.http',
+      );
+    }
     return JsonHttpResponse(
       statusCode: response.statusCode,
       body: responseBody,

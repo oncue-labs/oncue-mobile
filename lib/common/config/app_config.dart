@@ -5,6 +5,7 @@ final class AppConfig {
     required this.xClientId,
     this.xRedirectUri = defaultXRedirectUri,
     this.apnsEnvironment = defaultApnsEnvironment,
+    this.localTestCallEnabled = false,
   });
 
   factory AppConfig.fromEnvironment() {
@@ -23,6 +24,10 @@ final class AppConfig {
         'ONCUE_APNS_ENVIRONMENT',
         defaultValue: defaultApnsEnvironment,
       ),
+      localTestCallEnabled: bool.fromEnvironment(
+        'ONCUE_LOCAL_TEST_CALL_ENABLED',
+        defaultValue: false,
+      ),
     );
   }
 
@@ -36,6 +41,9 @@ final class AppConfig {
 
   /// APNs endpoint: SANDBOX for development builds, PRODUCTION for TestFlight.
   final String apnsEnvironment;
+
+  /// Enables the local-only immediate call test action. Keep false for TestFlight.
+  final bool localTestCallEnabled;
 
   bool get isReady =>
       apiBaseUrl.trim().isNotEmpty &&

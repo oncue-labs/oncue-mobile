@@ -1,8 +1,41 @@
+import 'dart:async';
+import 'dart:convert';
+import 'dart:io';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:oncue_mobile/common/network/api_error.dart';
 import 'package:oncue_mobile/common/network/http_api_client.dart';
 
 void main() {
+  test('encodes non-Latin JSON request bodies as UTF-8', () async {
+    final server = await HttpServer.bind(InternetAddress.loopbackIPv4, 0);
+    final requestBody = Completer<String>();
+    final serverSubscription = server.listen((request) async {
+      requestBody.complete(await utf8.decoder.bind(request).join());
+      request.response
+        ..statusCode = HttpStatus.ok
+        ..headers.contentType = ContentType.json
+        ..write('{"ok":true}');
+      await request.response.close();
+    });
+
+    addTearDown(() async {
+      await serverSubscription.cancel();
+      await server.close(force: true);
+    });
+
+    final response = await IoJsonHttpTransport().postJson(
+      Uri.parse('http://${server.address.host}:${server.port}/reservations'),
+      headers: const {'content-type': 'application/json'},
+      body: const {'scenarioContext': '아이가 빨리 잠들 수 있게 해 주세요'},
+    );
+
+    expect(response.statusCode, HttpStatus.ok);
+    expect(jsonDecode(await requestBody.future), {
+      'scenarioContext': '아이가 빨리 잠들 수 있게 해 주세요',
+    });
+  });
+
   test(
     'posts JSON with a bearer token and decodes a successful response',
     () async {
