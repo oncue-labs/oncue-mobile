@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:oncue_mobile/combination/model/call_combination_card.dart';
+import 'package:oncue_mobile/common/design_system/oncue_colors.dart';
+import 'package:oncue_mobile/common/design_system/widgets/outline_button.dart';
+import 'package:oncue_mobile/common/design_system/widgets/primary_button.dart';
 import 'package:oncue_mobile/common/device/device_time_zone_provider.dart';
 import 'package:oncue_mobile/reservation/application/reservation_service.dart';
 import 'package:oncue_mobile/reservation/model/reservation.dart';
@@ -43,6 +46,16 @@ final class _CombinationDetailPageState extends State<CombinationDetailPage> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final fieldFill = theme.extension<OnCueColors>()?.surfaceLight;
+    final fieldBorder = OutlineInputBorder(
+      borderRadius: BorderRadius.circular(12),
+      borderSide: BorderSide(
+        color: theme.extension<OnCueColors>()?.lineStrong ??
+            theme.colorScheme.outline,
+      ),
+    );
+
     return Scaffold(
       appBar: AppBar(title: Text(widget.combination.personaName)),
       body: ListView(
@@ -53,17 +66,26 @@ final class _CombinationDetailPageState extends State<CombinationDetailPage> {
           Text(
             widget.combination.personaName,
             key: ValueKey('detail-persona-${widget.combination.personaKey}'),
-            style: Theme.of(context).textTheme.headlineSmall,
+            style: theme.textTheme.headlineSmall?.copyWith(
+              fontWeight: FontWeight.w700,
+            ),
           ),
-          const SizedBox(height: 8),
-          Text(widget.combination.scenarioDescription),
+          const SizedBox(height: 4),
+          Text(
+            widget.combination.scenarioDescription,
+            style: TextStyle(color: theme.colorScheme.onSurfaceVariant),
+          ),
           const SizedBox(height: 16),
-          OutlinedButton.icon(
+          OutlineButton(
             onPressed: null,
-            icon: const Icon(Icons.play_arrow),
-            label: const Text('10초 미리듣기'),
+            icon: const Icon(Icons.play_arrow, size: 18),
+            label: '10초 미리듣기',
           ),
-          const Text('음성 미리듣기는 준비 중입니다.'),
+          const SizedBox(height: 6),
+          Text(
+            '음성 미리듣기는 준비 중입니다.',
+            style: TextStyle(color: theme.colorScheme.onSurfaceVariant),
+          ),
           const SizedBox(height: 24),
           TextField(
             key: const ValueKey('scenario-context-input'),
@@ -71,7 +93,10 @@ final class _CombinationDetailPageState extends State<CombinationDetailPage> {
             decoration: InputDecoration(
               labelText: '시나리오 컨텍스트',
               hintText: widget.combination.scenarioContextPlaceholder,
-              border: const OutlineInputBorder(),
+              filled: true,
+              fillColor: fieldFill,
+              border: fieldBorder,
+              enabledBorder: fieldBorder,
             ),
             maxLines: 4,
           ),
@@ -82,17 +107,20 @@ final class _CombinationDetailPageState extends State<CombinationDetailPage> {
             decoration: InputDecoration(
               labelText: '통화 목표',
               hintText: widget.combination.callGoalPlaceholder,
-              border: const OutlineInputBorder(),
+              filled: true,
+              fillColor: fieldFill,
+              border: fieldBorder,
+              enabledBorder: fieldBorder,
             ),
             maxLines: 3,
           ),
           if (widget.reservationService != null &&
               widget.timeZoneProvider != null) ...[
             const SizedBox(height: 24),
-            FilledButton(
+            PrimaryButton(
               key: const ValueKey('reserve-combination-button'),
               onPressed: () => _openReservationForm(context),
-              child: const Text('예약 정보 입력'),
+              label: '예약 정보 입력',
             ),
           ],
         ],

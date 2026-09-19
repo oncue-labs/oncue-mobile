@@ -29,6 +29,13 @@ ThemeData buildOnCueTheme() {
     colorScheme: colorScheme,
     scaffoldBackgroundColor: _background,
     fontFamily: 'Noto Sans KR',
+    appBarTheme: const AppBarTheme(
+      backgroundColor: _background,
+      foregroundColor: _text,
+      surfaceTintColor: Colors.transparent,
+      elevation: 0,
+      centerTitle: false,
+    ),
     extensions: const [OnCueColors.dark],
   );
 }

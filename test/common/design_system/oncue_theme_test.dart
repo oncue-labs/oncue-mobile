@@ -30,4 +30,12 @@ void main() {
     expect(colors.line, const Color(0x1AFFFFFF));
     expect(colors.lineStrong, const Color(0x2EFFFFFF));
   });
+
+  test('styles pushed-screen app bars flush against the scaffold background', () {
+    final theme = buildOnCueTheme();
+
+    expect(theme.appBarTheme.backgroundColor, const Color(0xFF11131A));
+    expect(theme.appBarTheme.foregroundColor, const Color(0xFFF7F4ED));
+    expect(theme.appBarTheme.surfaceTintColor, Colors.transparent);
+  });
 }

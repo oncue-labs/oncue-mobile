@@ -16,7 +16,7 @@ void main() {
   ) async {
     await tester.pumpWidget(const OnCueApp());
 
-    expect(find.text('통화 조합 선택'), findsOneWidget);
+    expect(find.text('전화 예약'), findsOneWidget);
     expect(find.text('산타'), findsOneWidget);
   });
 
@@ -33,7 +33,7 @@ void main() {
     await tester.tap(find.byKey(const ValueKey('combination-tab')));
     await tester.pumpAndSettle();
 
-    expect(find.text('통화 조합 선택'), findsOneWidget);
+    expect(find.text('전화 예약'), findsOneWidget);
     expect(find.text('산타'), findsOneWidget);
   });
 }

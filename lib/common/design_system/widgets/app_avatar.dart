@@ -34,11 +34,19 @@ final class AppAvatar extends StatelessWidget {
         color: theme.extension<OnCueColors>()?.surfaceLight,
         borderRadius: borderRadius,
         border: Border.all(color: line),
-        image: image != null
-            ? DecorationImage(image: image!, fit: BoxFit.cover)
-            : null,
       ),
-      child: image == null ? fallback : null,
+      child: image == null
+          ? fallback
+          : ClipRRect(
+              borderRadius: borderRadius,
+              child: Image(
+                image: image!,
+                width: size,
+                height: size,
+                fit: BoxFit.cover,
+                errorBuilder: (_, _, _) => fallback ?? const SizedBox.shrink(),
+              ),
+            ),
     );
   }
 }

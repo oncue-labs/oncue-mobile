@@ -3,10 +3,16 @@ import 'package:flutter/material.dart';
 /// Centered empty/placeholder content, matching `.empty-state` in
 /// `design/mockups/tokens.css`.
 final class EmptyState extends StatelessWidget {
-  const EmptyState({super.key, required this.icon, required this.message});
+  const EmptyState({
+    super.key,
+    required this.icon,
+    required this.message,
+    this.description,
+  });
 
   final IconData icon;
   final String message;
+  final String? description;
 
   @override
   Widget build(BuildContext context) {
@@ -22,8 +28,19 @@ final class EmptyState extends StatelessWidget {
           Text(
             message,
             textAlign: TextAlign.center,
-            style: TextStyle(color: theme.colorScheme.onSurfaceVariant),
+            style: TextStyle(
+              color: theme.colorScheme.onSurface,
+              fontWeight: FontWeight.w700,
+            ),
           ),
+          if (description != null) ...[
+            const SizedBox(height: 4),
+            Text(
+              description!,
+              textAlign: TextAlign.center,
+              style: TextStyle(color: theme.colorScheme.onSurfaceVariant),
+            ),
+          ],
         ],
       ),
     );
