@@ -31,4 +31,36 @@ void main() {
 
     expect(tappedIndex, 1);
   });
+
+  testWidgets('finds and taps an item by its itemKey', (tester) async {
+    int? tappedIndex;
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: OnCueBottomTabBar(
+            currentIndex: 0,
+            onTap: (index) => tappedIndex = index,
+            items: const [
+              OnCueTabItem(
+                icon: Icons.call,
+                label: '통화 조합',
+                itemKey: ValueKey('combination-tab'),
+              ),
+              OnCueTabItem(
+                icon: Icons.calendar_month,
+                label: '예약 목록',
+                itemKey: ValueKey('reservation-tab'),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+
+    await tester.tap(find.byKey(const ValueKey('reservation-tab')));
+    await tester.pump();
+
+    expect(tappedIndex, 1);
+  });
 }

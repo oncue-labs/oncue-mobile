@@ -5,10 +5,14 @@ import 'package:oncue_mobile/common/design_system/oncue_colors.dart';
 
 /// One entry of [OnCueBottomTabBar].
 final class OnCueTabItem {
-  const OnCueTabItem({required this.icon, required this.label});
+  const OnCueTabItem({required this.icon, required this.label, this.itemKey});
 
   final IconData icon;
   final String label;
+
+  /// Key applied to this item's tappable button, so callers can find and
+  /// tap a specific tab in tests without depending on label text.
+  final Key? itemKey;
 }
 
 /// Frosted-glass pill tab bar anchored to the bottom of the home shell,
@@ -48,6 +52,7 @@ final class OnCueBottomTabBar extends StatelessWidget {
               for (var index = 0; index < items.length; index++)
                 Expanded(
                   child: _TabButton(
+                    key: items[index].itemKey,
                     item: items[index],
                     isActive: index == currentIndex,
                     onTap: () => onTap(index),
@@ -63,6 +68,7 @@ final class OnCueBottomTabBar extends StatelessWidget {
 
 final class _TabButton extends StatelessWidget {
   const _TabButton({
+    super.key,
     required this.item,
     required this.isActive,
     required this.onTap,

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:oncue_mobile/combination/data/mvp_call_combinations.dart';
 import 'package:oncue_mobile/combination/presentation/combination_list_page.dart';
 import 'package:oncue_mobile/call/application/immediate_call_test_service.dart';
+import 'package:oncue_mobile/common/design_system/widgets/oncue_bottom_tab_bar.dart';
 import 'package:oncue_mobile/common/device/device_time_zone_provider.dart';
 import 'package:oncue_mobile/reservation/application/reservation_service.dart';
 import 'package:oncue_mobile/reservation/model/reservation.dart';
@@ -36,49 +37,57 @@ final class _OnCueHomePageState extends State<OnCueHomePage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: IndexedStack(
-        index: _selectedIndex,
+      body: Stack(
         children: [
-          CombinationListPage(
-            reservationService: widget.reservationService,
-            timeZoneProvider: widget.timeZoneProvider,
-            accessToken: widget.accessToken,
-            onLogout: widget.onLogout,
+          IndexedStack(
+            index: _selectedIndex,
+            children: [
+              CombinationListPage(
+                reservationService: widget.reservationService,
+                timeZoneProvider: widget.timeZoneProvider,
+                accessToken: widget.accessToken,
+                onLogout: widget.onLogout,
+              ),
+              ReservationListPage(
+                key: ValueKey('reservation-list-$_reservationRefreshToken'),
+                loadReservations:
+                    widget.loadReservations ?? _emptyReservations,
+                combinations: MvpCallCombinations.all,
+                reservationService: widget.reservationService,
+                accessToken: widget.accessToken,
+                onLogout: widget.onLogout,
+                immediateCallTestService: widget.immediateCallTestService,
+              ),
+            ],
           ),
-          ReservationListPage(
-            key: ValueKey('reservation-list-$_reservationRefreshToken'),
-            loadReservations: widget.loadReservations ?? _emptyReservations,
-            combinations: MvpCallCombinations.all,
-            reservationService: widget.reservationService,
-            accessToken: widget.accessToken,
-            onLogout: widget.onLogout,
-            immediateCallTestService: widget.immediateCallTestService,
-          ),
-        ],
-      ),
-      bottomNavigationBar: NavigationBar(
-        key: const ValueKey('main-navigation-bar'),
-        selectedIndex: _selectedIndex,
-        onDestinationSelected: (index) {
-          setState(() {
-            _selectedIndex = index;
-            if (index == 1) {
-              _reservationRefreshToken++;
-            }
-          });
-        },
-        destinations: const [
-          NavigationDestination(
-            key: ValueKey('combination-tab'),
-            icon: Icon(Icons.auto_awesome_outlined),
-            selectedIcon: Icon(Icons.auto_awesome),
-            label: '통화 조합',
-          ),
-          NavigationDestination(
-            key: ValueKey('reservation-tab'),
-            icon: Icon(Icons.event_note_outlined),
-            selectedIcon: Icon(Icons.event_note),
-            label: '예약 목록',
+          Positioned(
+            left: 16,
+            right: 16,
+            bottom: 18,
+            child: OnCueBottomTabBar(
+              key: const ValueKey('main-navigation-bar'),
+              currentIndex: _selectedIndex,
+              onTap: (index) {
+                setState(() {
+                  _selectedIndex = index;
+                  if (index == 1) {
+                    _reservationRefreshToken++;
+                  }
+                });
+              },
+              items: const [
+                OnCueTabItem(
+                  itemKey: ValueKey('combination-tab'),
+                  icon: Icons.auto_awesome,
+                  label: '페르소나',
+                ),
+                OnCueTabItem(
+                  itemKey: ValueKey('reservation-tab'),
+                  icon: Icons.calendar_month,
+                  label: '예약 목록',
+                ),
+              ],
+            ),
           ),
         ],
       ),
