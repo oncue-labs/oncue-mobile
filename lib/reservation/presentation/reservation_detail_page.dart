@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:oncue_mobile/combination/model/call_combination_card.dart';
+import 'package:oncue_mobile/common/design_system/oncue_colors.dart';
+import 'package:oncue_mobile/common/design_system/widgets/status_chip.dart';
 import 'package:oncue_mobile/reservation/model/reservation.dart';
 
 final class ReservationDetailPage extends StatelessWidget {
@@ -23,6 +25,10 @@ final class ReservationDetailPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final canEdit = _canEdit;
+    final theme = Theme.of(context);
+    final lineStrong =
+        theme.extension<OnCueColors>()?.lineStrong ?? theme.colorScheme.outline;
+
     return Scaffold(
       appBar: AppBar(title: const Text('예약 상세')),
       body: ListView(
@@ -32,33 +38,71 @@ final class ReservationDetailPage extends StatelessWidget {
           const SizedBox(height: 16),
           Text(
             combination.personaName,
-            style: Theme.of(context).textTheme.headlineSmall,
+            style: theme.textTheme.titleLarge?.copyWith(
+              fontWeight: FontWeight.w700,
+            ),
           ),
-          const SizedBox(height: 8),
-          Text(combination.scenarioDescription),
-          const SizedBox(height: 24),
-          _DetailRow(label: '예약 상태', value: _reservationStatusLabel),
-          _DetailRow(label: '통화 상태', value: _callStatusLabel),
-          _DetailRow(label: '통화 결과', value: _callOutcomeLabel),
+          const SizedBox(height: 4),
+          Text(
+            combination.scenarioDescription,
+            style: TextStyle(color: theme.colorScheme.onSurfaceVariant),
+          ),
+          const SizedBox(height: 20),
+          _DetailRow(
+            label: '예약 상태',
+            valueWidget: StatusChip(
+              label: _reservationStatusLabel,
+              variant: reservation.reservationStatus == 'CANCELLED'
+                  ? StatusChipVariant.cancelled
+                  : StatusChipVariant.scheduled,
+            ),
+            lineColor: lineStrong,
+          ),
+          _DetailRow(
+            label: '통화 상태',
+            value: _callStatusLabel,
+            lineColor: lineStrong,
+          ),
+          _DetailRow(
+            label: '통화 결과',
+            value: _callOutcomeLabel,
+            lineColor: lineStrong,
+          ),
           _DetailRow(
             label: '예약 시각',
             value: _formatScheduledAt(reservation.scheduledAtLocal),
+            lineColor: lineStrong,
           ),
-          _DetailRow(label: '시간대', value: reservation.timeZone),
+          _DetailRow(
+            label: '시간대',
+            value: reservation.timeZone,
+            lineColor: lineStrong,
+          ),
           _DetailRow(
             label: '수정 가능 마감',
             value: _formatScheduledAt(reservation.editableUntil.toLocal()),
+            lineColor: lineStrong,
+            showDivider: false,
           ),
           const SizedBox(height: 16),
-          const Text('시나리오 컨텍스트'),
+          Text(
+            '시나리오 컨텍스트',
+            style: TextStyle(color: theme.colorScheme.onSurfaceVariant),
+          ),
           const SizedBox(height: 4),
           Text(reservation.scenarioContext ?? '입력하지 않음'),
           const SizedBox(height: 16),
-          const Text('통화 목표'),
+          Text(
+            '통화 목표',
+            style: TextStyle(color: theme.colorScheme.onSurfaceVariant),
+          ),
           const SizedBox(height: 4),
           Text(reservation.callGoal ?? '입력하지 않음'),
           const SizedBox(height: 16),
-          const Text('예약 시각은 정확히 보장되지 않을 수 있어요.'),
+          Text(
+            '예약 시각은 정확히 보장되지 않을 수 있어요.',
+            style: TextStyle(color: theme.colorScheme.onSurfaceVariant),
+          ),
           if (onStartTestCall != null) ...[
             const SizedBox(height: 24),
             OutlinedButton.icon(
@@ -69,18 +113,53 @@ final class ReservationDetailPage extends StatelessWidget {
             ),
           ],
           if (!canEdit) ...[
-            const SizedBox(height: 8),
-            const Text('통화 5분 전부터는 예약을 수정할 수 없습니다.'),
+            const SizedBox(height: 16),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: theme.colorScheme.error.withValues(alpha: 0.08),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                  color: theme.colorScheme.error.withValues(alpha: 0.35),
+                ),
+              ),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Icon(Icons.schedule, color: theme.colorScheme.error),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      '통화 5분 전부터는 예약을 수정할 수 없습니다.',
+                      style: TextStyle(color: theme.colorScheme.error),
+                    ),
+                  ),
+                ],
+              ),
+            ),
           ],
           const SizedBox(height: 24),
           OutlinedButton(
             key: const ValueKey('edit-reservation-button'),
             onPressed: canEdit && onEdit != null ? onEdit : null,
+            style: OutlinedButton.styleFrom(
+              foregroundColor: theme.colorScheme.onSurface,
+              side: BorderSide(color: lineStrong),
+              padding: const EdgeInsets.symmetric(vertical: 13),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(14),
+              ),
+              minimumSize: const Size.fromHeight(0),
+            ),
             child: const Text('예약 수정'),
           ),
           TextButton(
             key: const ValueKey('cancel-reservation-button'),
             onPressed: canEdit && onCancel != null ? onCancel : null,
+            style: TextButton.styleFrom(
+              foregroundColor: theme.colorScheme.error,
+              minimumSize: const Size.fromHeight(44),
+            ),
             child: const Text('예약 취소'),
           ),
         ],
@@ -123,20 +202,45 @@ final class ReservationDetailPage extends StatelessWidget {
 }
 
 final class _DetailRow extends StatelessWidget {
-  const _DetailRow({required this.label, required this.value});
+  const _DetailRow({
+    required this.label,
+    this.value,
+    this.valueWidget,
+    required this.lineColor,
+    this.showDivider = true,
+  }) : assert(
+         value != null || valueWidget != null,
+         'either value or valueWidget must be given',
+       );
 
   final String label;
-  final String value;
+  final String? value;
+  final Widget? valueWidget;
+  final Color lineColor;
+  final bool showDivider;
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 8),
+    final theme = Theme.of(context);
+
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 9),
+      decoration: showDivider
+          ? BoxDecoration(
+              border: Border(bottom: BorderSide(color: lineColor)),
+            )
+          : null,
       child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          SizedBox(width: 112, child: Text(label)),
-          Expanded(child: Text(value)),
+          SizedBox(
+            width: 96,
+            child: Text(
+              label,
+              style: TextStyle(color: theme.colorScheme.onSurfaceVariant),
+            ),
+          ),
+          Expanded(child: valueWidget ?? Text(value!)),
         ],
       ),
     );

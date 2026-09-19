@@ -140,4 +140,28 @@ void main() {
 
     expect(find.text('새로운 조합이 열리면 가장 먼저 알려드릴게요.'), findsOneWidget);
   });
+
+  testWidgets('EmptyState wraps its icon in a colored badge matching the variant', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      _harness(
+        const EmptyState(
+          icon: Icons.warning_amber,
+          message: '예약을 불러오지 못했습니다.',
+          variant: IconBadgeVariant.danger,
+        ),
+      ),
+    );
+
+    expect(
+      find.descendant(
+        of: find.byType(EmptyState),
+        matching: find.byType(IconBadge),
+      ),
+      findsOneWidget,
+    );
+    final badge = tester.widget<IconBadge>(find.byType(IconBadge));
+    expect(badge.variant, IconBadgeVariant.danger);
+  });
 }

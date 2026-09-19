@@ -2,6 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:oncue_mobile/combination/model/call_combination_card.dart';
 import 'package:oncue_mobile/call/application/immediate_call_test_service.dart';
 import 'package:oncue_mobile/call/presentation/immediate_call_page.dart';
+import 'package:oncue_mobile/common/design_system/widgets/app_avatar.dart';
+import 'package:oncue_mobile/common/design_system/widgets/app_card.dart';
+import 'package:oncue_mobile/common/design_system/widgets/app_snackbar.dart';
+import 'package:oncue_mobile/common/design_system/widgets/confirm_dialog.dart';
+import 'package:oncue_mobile/common/design_system/widgets/empty_state.dart';
+import 'package:oncue_mobile/common/design_system/widgets/header_banner.dart';
+import 'package:oncue_mobile/common/design_system/widgets/icon_badge.dart';
+import 'package:oncue_mobile/common/design_system/widgets/status_chip.dart';
 import 'package:oncue_mobile/common/network/api_error.dart';
 import 'package:oncue_mobile/reservation/application/reservation_service.dart';
 import 'package:oncue_mobile/reservation/model/reservation.dart';
@@ -42,45 +50,59 @@ final class _ReservationListPageState extends State<ReservationListPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('예약 목록'),
-        actions: [
-          if (widget.onLogout != null)
-            IconButton(
-              key: const ValueKey('logout-button'),
-              tooltip: '로그아웃',
-              onPressed: () => widget.onLogout!(),
-              icon: const Icon(Icons.logout),
+      body: Column(
+        children: [
+          HeaderBanner(
+            title: '예약 목록',
+            trailing: widget.onLogout == null
+                ? null
+                : IconButton(
+                    key: const ValueKey('logout-button'),
+                    tooltip: '로그아웃',
+                    onPressed: () => widget.onLogout!(),
+                    icon: const Icon(Icons.logout),
+                  ),
+          ),
+          Expanded(
+            child: FutureBuilder<List<Reservation>>(
+              future: _reservationsFuture,
+              builder: (context, snapshot) {
+                if (snapshot.connectionState != ConnectionState.done) {
+                  return const Center(child: CircularProgressIndicator());
+                }
+                if (snapshot.hasError) {
+                  return const EmptyState(
+                    icon: Icons.warning_amber,
+                    variant: IconBadgeVariant.danger,
+                    message: '예약을 불러오지 못했습니다.',
+                    description: '네트워크 상태를 확인한 뒤 다시 시도해주세요.',
+                  );
+                }
+                final reservations = snapshot.data ?? const <Reservation>[];
+                if (reservations.isEmpty) {
+                  return const EmptyState(
+                    icon: Icons.calendar_month,
+                    message: '예약된 통화가 없습니다.',
+                    description: '페르소나를 골라 첫 예약을 만들어보세요.',
+                  );
+                }
+                return ListView.separated(
+                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 112),
+                  itemCount: reservations.length,
+                  separatorBuilder: (_, _) => const SizedBox(height: 12),
+                  itemBuilder: (context, index) {
+                    final reservation = reservations[index];
+                    return _ReservationTile(
+                      reservation: reservation,
+                      combination: _findCombination(reservation),
+                      onTap: () => _openDetail(context, reservation),
+                    );
+                  },
+                );
+              },
             ),
+          ),
         ],
-      ),
-      body: FutureBuilder<List<Reservation>>(
-        future: _reservationsFuture,
-        builder: (context, snapshot) {
-          if (snapshot.connectionState != ConnectionState.done) {
-            return const Center(child: CircularProgressIndicator());
-          }
-          if (snapshot.hasError) {
-            return const Center(child: Text('예약을 불러오지 못했습니다.'));
-          }
-          final reservations = snapshot.data ?? const <Reservation>[];
-          if (reservations.isEmpty) {
-            return const Center(child: Text('예약된 통화가 없습니다.'));
-          }
-          return ListView.separated(
-            padding: const EdgeInsets.all(16),
-            itemCount: reservations.length,
-            separatorBuilder: (_, _) => const SizedBox(height: 12),
-            itemBuilder: (context, index) {
-              final reservation = reservations[index];
-              return _ReservationTile(
-                reservation: reservation,
-                combination: _findCombination(reservation),
-                onTap: () => _openDetail(context, reservation),
-              );
-            },
-          );
-        },
       ),
     );
   }
@@ -186,24 +208,13 @@ final class _ReservationListPageState extends State<ReservationListPage> {
     if (service == null) {
       return;
     }
-    final shouldCancel = await showDialog<bool>(
-      context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: const Text('예약을 취소할까요?'),
-        content: const Text('취소한 예약은 다시 사용할 수 없습니다.'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(dialogContext).pop(false),
-            child: const Text('돌아가기'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.of(dialogContext).pop(true),
-            child: const Text('예약 취소'),
-          ),
-        ],
-      ),
+    final shouldCancel = await showOnCueConfirmDialog(
+      context,
+      title: '예약을 취소할까요?',
+      message: '취소한 예약은 다시 사용할 수 없습니다.',
+      confirmLabel: '예약 취소',
     );
-    if (shouldCancel != true || !context.mounted) {
+    if (!shouldCancel || !context.mounted) {
       return;
     }
     try {
@@ -219,9 +230,7 @@ final class _ReservationListPageState extends State<ReservationListPage> {
       if (!context.mounted) {
         return;
       }
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(error.message)));
+      AppSnackbar.showError(context, error.message);
     }
   }
 }
@@ -239,44 +248,61 @@ final class _ReservationTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      key: ValueKey('reservation-${reservation.reservationId}'),
-      child: ListTile(
-        leading: _PersonaImage(assetPath: combination?.personaImageAsset),
-        title: Text(combination?.personaName ?? reservation.personaKey),
-        subtitle: Text(
-          '${_formatScheduledAt(reservation.scheduledAtLocal)} · '
-          '${_reservationStatusLabel(reservation.reservationStatus)}',
-        ),
-        trailing: const Icon(Icons.chevron_right),
+    final theme = Theme.of(context);
+    final isCancelled = reservation.reservationStatus == 'CANCELLED';
+
+    return Opacity(
+      opacity: isCancelled ? 0.55 : 1,
+      child: InkWell(
+        key: ValueKey('reservation-${reservation.reservationId}'),
+        borderRadius: BorderRadius.circular(18),
         onTap: onTap,
-      ),
-    );
-  }
-}
-
-final class _PersonaImage extends StatelessWidget {
-  const _PersonaImage({required this.assetPath});
-
-  final String? assetPath;
-
-  @override
-  Widget build(BuildContext context) {
-    final path = assetPath;
-    if (path == null) {
-      return const CircleAvatar(child: Icon(Icons.person));
-    }
-    return SizedBox(
-      width: 48,
-      height: 48,
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(12),
-        child: Image.asset(
-          path,
-          fit: BoxFit.cover,
-          errorBuilder: (_, _, _) => const ColoredBox(
-            color: Color(0xFFE8EAF6),
-            child: Icon(Icons.person),
+        child: AppCard(
+          child: Row(
+            children: [
+              AppAvatar(
+                isRound: true,
+                image: combination == null
+                    ? null
+                    : AssetImage(combination!.personaImageAsset),
+                fallback: const Icon(Icons.person),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      combination?.personaName ?? reservation.personaKey,
+                      style: theme.textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    const SizedBox(height: 3),
+                    Row(
+                      children: [
+                        Text(
+                          _formatScheduledAt(reservation.scheduledAtLocal),
+                          style: TextStyle(
+                            color: theme.colorScheme.onSurfaceVariant,
+                          ),
+                        ),
+                        const SizedBox(width: 6),
+                        StatusChip(
+                          label: _reservationStatusLabel(
+                            reservation.reservationStatus,
+                          ),
+                          variant: isCancelled
+                              ? StatusChipVariant.cancelled
+                              : StatusChipVariant.scheduled,
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+              Icon(Icons.chevron_right, color: theme.colorScheme.onSurfaceVariant),
+            ],
           ),
         ),
       ),

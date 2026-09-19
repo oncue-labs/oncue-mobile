@@ -1,18 +1,22 @@
 import 'package:flutter/material.dart';
+import 'package:oncue_mobile/common/design_system/widgets/icon_badge.dart';
 
 /// Centered empty/placeholder content, matching `.empty-state` in
-/// `design/mockups/tokens.css`.
+/// `design/mockups/tokens.css` — an [IconBadge] above a bold message and
+/// an optional muted description.
 final class EmptyState extends StatelessWidget {
   const EmptyState({
     super.key,
     required this.icon,
     required this.message,
     this.description,
+    this.variant = IconBadgeVariant.accent,
   });
 
   final IconData icon;
   final String message;
   final String? description;
+  final IconBadgeVariant variant;
 
   @override
   Widget build(BuildContext context) {
@@ -23,7 +27,7 @@ final class EmptyState extends StatelessWidget {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, size: 32, color: theme.colorScheme.onSurfaceVariant),
+          IconBadge(icon: icon, variant: variant),
           const SizedBox(height: 10),
           Text(
             message,
