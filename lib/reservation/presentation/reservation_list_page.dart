@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:oncue_mobile/combination/model/call_combination_card.dart';
+import 'package:oncue_mobile/call/application/immediate_call_test_service.dart';
+import 'package:oncue_mobile/call/presentation/immediate_call_page.dart';
 import 'package:oncue_mobile/common/network/api_error.dart';
 import 'package:oncue_mobile/reservation/application/reservation_service.dart';
 import 'package:oncue_mobile/reservation/model/reservation.dart';
@@ -13,12 +15,16 @@ final class ReservationListPage extends StatefulWidget {
     required this.combinations,
     this.reservationService,
     this.accessToken,
+    this.onLogout,
+    this.immediateCallTestService,
   });
 
   final Future<List<Reservation>> Function() loadReservations;
   final List<CallCombinationCard> combinations;
   final ReservationService? reservationService;
   final String? accessToken;
+  final Future<void> Function()? onLogout;
+  final ImmediateCallTestService? immediateCallTestService;
 
   @override
   State<ReservationListPage> createState() => _ReservationListPageState();
@@ -36,7 +42,18 @@ final class _ReservationListPageState extends State<ReservationListPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('예약 목록')),
+      appBar: AppBar(
+        title: const Text('예약 목록'),
+        actions: [
+          if (widget.onLogout != null)
+            IconButton(
+              key: const ValueKey('logout-button'),
+              tooltip: '로그아웃',
+              onPressed: () => widget.onLogout!(),
+              icon: const Icon(Icons.logout),
+            ),
+        ],
+      ),
       body: FutureBuilder<List<Reservation>>(
         future: _reservationsFuture,
         builder: (context, snapshot) {
@@ -91,6 +108,9 @@ final class _ReservationListPageState extends State<ReservationListPage> {
         builder: (_) => ReservationDetailPage(
           reservation: reservation,
           combination: combination,
+          onStartTestCall: widget.immediateCallTestService == null
+              ? null
+              : () => _openImmediateTestCall(context, reservation, combination),
           onEdit: widget.reservationService == null
               ? null
               : () => _openEditForm(context, reservation, combination),
@@ -106,6 +126,27 @@ final class _ReservationListPageState extends State<ReservationListPage> {
     setState(() {
       _reservationsFuture = widget.loadReservations();
     });
+  }
+
+  Future<void> _openImmediateTestCall(
+    BuildContext context,
+    Reservation reservation,
+    CallCombinationCard combination,
+  ) async {
+    final service = widget.immediateCallTestService;
+    if (service == null) {
+      return;
+    }
+    await Navigator.of(context).push<void>(
+      MaterialPageRoute<void>(
+        builder: (_) => ImmediateCallPage(
+          reservationId: reservation.reservationId,
+          accessToken: widget.accessToken,
+          combination: combination,
+          callService: service,
+        ),
+      ),
+    );
   }
 
   Future<void> _openEditForm(

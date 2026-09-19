@@ -8,7 +8,13 @@ import 'package:oncue_mobile/auth/data/kakao_oauth_authorization_client.dart';
 import 'package:oncue_mobile/auth/data/oauth_authorization_router.dart';
 import 'package:oncue_mobile/auth/data/secure_auth_session_store.dart';
 import 'package:oncue_mobile/auth/data/x_oauth_authorization_client.dart';
+import 'package:oncue_mobile/call/application/call_connection_service.dart';
+import 'package:oncue_mobile/call/application/incoming_call_coordinator.dart';
+import 'package:oncue_mobile/call/application/immediate_call_test_service.dart';
+import 'package:oncue_mobile/call/data/call_connection_api_client.dart';
+import 'package:oncue_mobile/call/data/call_session_api_client.dart';
 import 'package:oncue_mobile/common/config/app_config.dart';
+import 'package:oncue_mobile/common/call/method_channel_system_call_manager.dart';
 import 'package:oncue_mobile/common/device/device_time_zone_provider.dart';
 import 'package:oncue_mobile/common/network/http_api_client.dart';
 import 'package:oncue_mobile/common/permissions/method_channel_call_permission_service.dart';
@@ -47,6 +53,21 @@ Future<void> main() async {
     ReservationApiClient(apiClient),
     const MethodChannelCallPermissionService(),
   );
+  final systemCallManager = MethodChannelSystemCallManager();
+  final callSessionApi = CallSessionApiClient(apiClient);
+  final callConnection = CallConnectionService(
+    CallConnectionApiClient(apiClient),
+    FlutterWebRtcCallConnectionTransport(),
+  );
+  final incomingCallCoordinator = IncomingCallCoordinator(
+    systemCallManager: systemCallManager,
+    authSessionProvider: authService,
+    callSessionApi: callSessionApi,
+    callConnection: callConnection,
+  );
+  final immediateCallTestService = config.localTestCallEnabled
+      ? ImmediateCallTestService(callSessionApi, callConnection)
+      : null;
   final authorizationClient = OAuthAuthorizationRouter(
     kakao: KakaoOAuthAuthorizationClient(
       loadAccessToken: () async {
@@ -69,6 +90,8 @@ Future<void> main() async {
       authorizationClient: authorizationClient,
       reservationService: reservationService,
       timeZoneProvider: const MethodChannelDeviceTimeZoneProvider(),
+      incomingCallCoordinator: incomingCallCoordinator,
+      immediateCallTestService: immediateCallTestService,
     ),
   );
 }

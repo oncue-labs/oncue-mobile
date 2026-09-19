@@ -1,14 +1,40 @@
 import 'package:oncue_mobile/call/model/call_session.dart';
 import 'package:oncue_mobile/common/network/api_client.dart';
 
-final class CallSessionApiClient {
+abstract interface class CallSessionCommandApi {
+  Future<CallSession> reject(String callSessionId, {String? accessToken});
+
+  Future<CallSession> prepareTestCall(
+    String reservationId, {
+    String? accessToken,
+  });
+}
+
+final class CallSessionApiClient implements CallSessionCommandApi {
   CallSessionApiClient(this._apiClient);
 
   final ApiClient _apiClient;
 
-  Future<CallSession> reject(String callSessionId) async {
+  @override
+  Future<CallSession> reject(
+    String callSessionId, {
+    String? accessToken,
+  }) async {
     final response = await _apiClient.postJson(
       '/api/v1/call-sessions/$callSessionId/reject',
+      accessToken: accessToken,
+    );
+    return CallSession.fromJson(response);
+  }
+
+  @override
+  Future<CallSession> prepareTestCall(
+    String reservationId, {
+    String? accessToken,
+  }) async {
+    final response = await _apiClient.postJson(
+      '/api/v1/reservations/$reservationId/test-call',
+      accessToken: accessToken,
     );
     return CallSession.fromJson(response);
   }

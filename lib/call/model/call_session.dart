@@ -15,7 +15,7 @@ final class CallSession {
 
   factory CallSession.fromJson(Map<String, dynamic> json) {
     return CallSession(
-      callSessionId: json['callSessionId'] as String,
+      callSessionId: json['callSessionId'].toString(),
       callStatus: json['callStatus'] as String,
       callOutcome: json['callOutcome'] as String?,
       createdAt: DateTime.parse(json['createdAt'] as String),

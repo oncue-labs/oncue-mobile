@@ -10,6 +10,7 @@ final class ReservationDetailPage extends StatelessWidget {
     this.now = DateTime.now,
     this.onEdit,
     this.onCancel,
+    this.onStartTestCall,
   });
 
   final Reservation reservation;
@@ -17,6 +18,7 @@ final class ReservationDetailPage extends StatelessWidget {
   final DateTime Function() now;
   final Future<void> Function()? onEdit;
   final Future<void> Function()? onCancel;
+  final Future<void> Function()? onStartTestCall;
 
   @override
   Widget build(BuildContext context) {
@@ -57,6 +59,15 @@ final class ReservationDetailPage extends StatelessWidget {
           Text(reservation.callGoal ?? '입력하지 않음'),
           const SizedBox(height: 16),
           const Text('예약 시각은 정확히 보장되지 않을 수 있어요.'),
+          if (onStartTestCall != null) ...[
+            const SizedBox(height: 24),
+            OutlinedButton.icon(
+              key: const ValueKey('local-test-call-button'),
+              onPressed: onStartTestCall,
+              icon: const Icon(Icons.bug_report_outlined),
+              label: const Text('개발용 즉시 통화'),
+            ),
+          ],
           if (!canEdit) ...[
             const SizedBox(height: 8),
             const Text('통화 5분 전부터는 예약을 수정할 수 없습니다.'),

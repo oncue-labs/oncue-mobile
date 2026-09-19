@@ -53,6 +53,29 @@ void main() {
     expect(editButton.onPressed, isNull);
     expect(find.text('통화 5분 전부터는 예약을 수정할 수 없습니다.'), findsOneWidget);
   });
+
+  testWidgets('shows the local immediate-call action only when provided', (
+    tester,
+  ) async {
+    var testCallTapped = false;
+    await tester.pumpWidget(
+      MaterialApp(
+        home: ReservationDetailPage(
+          reservation: _reservation(editableUntil: DateTime(2026, 9, 8, 20)),
+          combination: MvpCallCombinations.all.first,
+          now: () => DateTime(2026, 9, 8, 19),
+          onStartTestCall: () async => testCallTapped = true,
+        ),
+      ),
+    );
+
+    await tester.fling(find.byType(ListView), const Offset(0, -1000), 1000);
+    await tester.pump();
+
+    expect(find.byKey(const ValueKey('local-test-call-button')), findsOneWidget);
+    await tester.tap(find.byKey(const ValueKey('local-test-call-button')));
+    expect(testCallTapped, isTrue);
+  });
 }
 
 Reservation _reservation({required DateTime editableUntil}) {

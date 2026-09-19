@@ -12,17 +12,30 @@ final class CombinationListPage extends StatelessWidget {
     this.reservationService,
     this.timeZoneProvider,
     this.accessToken,
+    this.onLogout,
   });
 
   final List<CallCombinationCard> combinations;
   final ReservationService? reservationService;
   final DeviceTimeZoneProvider? timeZoneProvider;
   final String? accessToken;
+  final Future<void> Function()? onLogout;
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('통화 조합 선택')),
+      appBar: AppBar(
+        title: const Text('통화 조합 선택'),
+        actions: [
+          if (onLogout != null)
+            IconButton(
+              key: const ValueKey('logout-button'),
+              tooltip: '로그아웃',
+              onPressed: () => onLogout!(),
+              icon: const Icon(Icons.logout),
+            ),
+        ],
+      ),
       body: ListView.separated(
         padding: const EdgeInsets.all(16),
         itemCount: combinations.length,

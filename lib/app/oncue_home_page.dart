@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:oncue_mobile/combination/data/mvp_call_combinations.dart';
 import 'package:oncue_mobile/combination/presentation/combination_list_page.dart';
+import 'package:oncue_mobile/call/application/immediate_call_test_service.dart';
 import 'package:oncue_mobile/common/device/device_time_zone_provider.dart';
 import 'package:oncue_mobile/reservation/application/reservation_service.dart';
 import 'package:oncue_mobile/reservation/model/reservation.dart';
@@ -13,48 +14,58 @@ final class OnCueHomePage extends StatefulWidget {
     this.reservationService,
     this.timeZoneProvider,
     this.accessToken,
+    this.onLogout,
+    this.immediateCallTestService,
   });
 
   final Future<List<Reservation>> Function()? loadReservations;
   final ReservationService? reservationService;
   final DeviceTimeZoneProvider? timeZoneProvider;
   final String? accessToken;
+  final Future<void> Function()? onLogout;
+  final ImmediateCallTestService? immediateCallTestService;
 
   @override
   State<OnCueHomePage> createState() => _OnCueHomePageState();
 }
 
 final class _OnCueHomePageState extends State<OnCueHomePage> {
-  late final List<Widget> _pages;
   int _selectedIndex = 0;
-
-  @override
-  void initState() {
-    super.initState();
-    _pages = [
-      CombinationListPage(
-        reservationService: widget.reservationService,
-        timeZoneProvider: widget.timeZoneProvider,
-        accessToken: widget.accessToken,
-      ),
-      ReservationListPage(
-        loadReservations: widget.loadReservations ?? _emptyReservations,
-        combinations: MvpCallCombinations.all,
-        reservationService: widget.reservationService,
-        accessToken: widget.accessToken,
-      ),
-    ];
-  }
+  int _reservationRefreshToken = 0;
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: IndexedStack(index: _selectedIndex, children: _pages),
+      body: IndexedStack(
+        index: _selectedIndex,
+        children: [
+          CombinationListPage(
+            reservationService: widget.reservationService,
+            timeZoneProvider: widget.timeZoneProvider,
+            accessToken: widget.accessToken,
+            onLogout: widget.onLogout,
+          ),
+          ReservationListPage(
+            key: ValueKey('reservation-list-$_reservationRefreshToken'),
+            loadReservations: widget.loadReservations ?? _emptyReservations,
+            combinations: MvpCallCombinations.all,
+            reservationService: widget.reservationService,
+            accessToken: widget.accessToken,
+            onLogout: widget.onLogout,
+            immediateCallTestService: widget.immediateCallTestService,
+          ),
+        ],
+      ),
       bottomNavigationBar: NavigationBar(
         key: const ValueKey('main-navigation-bar'),
         selectedIndex: _selectedIndex,
         onDestinationSelected: (index) {
-          setState(() => _selectedIndex = index);
+          setState(() {
+            _selectedIndex = index;
+            if (index == 1) {
+              _reservationRefreshToken++;
+            }
+          });
         },
         destinations: const [
           NavigationDestination(

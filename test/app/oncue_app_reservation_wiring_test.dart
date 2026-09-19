@@ -12,6 +12,7 @@ void main() {
     tester,
   ) async {
     final client = _FakeReservationClient();
+    client.reservations = [_reservation()];
     final service = ReservationService(client, _ReadyPermissionService());
 
     await tester.pumpWidget(
@@ -28,6 +29,29 @@ void main() {
 
     expect(find.byKey(const ValueKey('reservation-1001')), findsOneWidget);
     expect(client.listAccessToken, 'access-token');
+  });
+
+  testWidgets('reloads reservations when the reservation tab is selected', (
+    tester,
+  ) async {
+    final client = _FakeReservationClient();
+    final service = ReservationService(client, _ReadyPermissionService());
+
+    await tester.pumpWidget(
+      OnCueApp(
+        accessToken: 'access-token',
+        reservationService: service,
+        timeZoneProvider: _FakeTimeZoneProvider(),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    client.reservations = [_reservation()];
+    await tester.tap(find.byKey(const ValueKey('reservation-tab')));
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const ValueKey('reservation-1001')), findsOneWidget);
+    expect(client.listCallCount, 2);
   });
 }
 
@@ -52,6 +76,8 @@ final class _FakeTimeZoneProvider implements DeviceTimeZoneProvider {
 }
 
 final class _FakeReservationClient implements ReservationClient {
+  List<Reservation> reservations = const [];
+  int listCallCount = 0;
   String? listAccessToken;
 
   @override
@@ -72,8 +98,9 @@ final class _FakeReservationClient implements ReservationClient {
 
   @override
   Future<List<Reservation>> list({String? accessToken}) async {
+    listCallCount++;
     listAccessToken = accessToken;
-    return [_reservation()];
+    return reservations;
   }
 
   @override
