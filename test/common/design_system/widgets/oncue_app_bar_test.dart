@@ -25,6 +25,16 @@ void main() {
     expect(find.text('예약 상세'), findsOneWidget);
   });
 
+  testWidgets('renders the title text at the mockup size and weight', (
+    tester,
+  ) async {
+    await tester.pumpWidget(harnessWithBackStack(const OnCueAppBar(title: '예약 상세')));
+
+    final titleText = tester.widget<Text>(find.text('예약 상세'));
+    expect(titleText.style?.fontSize, closeTo(17, 0.5));
+    expect(titleText.style?.fontWeight, FontWeight.w700);
+  });
+
   testWidgets('draws a bottom border line under the app bar', (tester) async {
     await tester.pumpWidget(harnessWithBackStack(const OnCueAppBar(title: '예약 상세')));
 

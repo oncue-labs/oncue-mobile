@@ -11,6 +11,27 @@ void main() {
   final combination = MvpCallCombinations.all.first;
   final scheduledAtLocal = DateTime(2026, 9, 8, 21);
 
+  testWidgets('renders the persona name heading at the mockup type scale', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        home: ReservationFormPage(
+          combination: combination,
+          initialScheduledAtLocal: scheduledAtLocal,
+          timeZone: 'Asia/Seoul',
+          reservationService: _service(
+            permissionStatus: CallPermissionStatus.ready,
+          ),
+        ),
+      ),
+    );
+
+    final heading = tester.widget<Text>(find.text(combination.personaName));
+    expect(heading.style?.fontSize, closeTo(18.4, 0.5));
+    expect(heading.style?.fontWeight, FontWeight.w700);
+  });
+
   testWidgets('shows both scenario input guides and the timing notice', (
     tester,
   ) async {

@@ -80,6 +80,10 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.byKey(const ValueKey('detail-persona-friend')), findsOneWidget);
+    final heading = tester.widget<Text>(
+      find.byKey(const ValueKey('detail-persona-friend')),
+    );
+    expect(heading.style?.fontSize, closeTo(18.4, 0.5));
     await tester.fling(find.byType(ListView), const Offset(0, -1000), 1000);
     await tester.pump();
 

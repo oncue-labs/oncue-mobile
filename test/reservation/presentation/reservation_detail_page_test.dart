@@ -34,6 +34,26 @@ void main() {
     expect(editTapped, isTrue);
   });
 
+  testWidgets('renders the persona name heading at the mockup type scale', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        home: ReservationDetailPage(
+          reservation: _reservation(editableUntil: DateTime(2026, 9, 8, 20)),
+          combination: MvpCallCombinations.all.first,
+          now: () => DateTime(2026, 9, 8, 19),
+        ),
+      ),
+    );
+
+    final heading = tester.widget<Text>(
+      find.text(MvpCallCombinations.all.first.personaName),
+    );
+    expect(heading.style?.fontSize, closeTo(18.4, 0.5));
+    expect(heading.style?.fontWeight, FontWeight.w700);
+  });
+
   testWidgets('sizes the reservation status chip to its text, not the full row', (
     tester,
   ) async {

@@ -67,7 +67,9 @@ final class _CombinationDetailPageState extends State<CombinationDetailPage> {
           Text(
             widget.combination.personaName,
             key: ValueKey('detail-persona-${widget.combination.personaKey}'),
-            style: theme.textTheme.headlineSmall?.copyWith(
+            style: TextStyle(
+              color: theme.colorScheme.onSurface,
+              fontSize: 18.4,
               fontWeight: FontWeight.w700,
             ),
           ),

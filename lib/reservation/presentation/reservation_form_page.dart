@@ -82,7 +82,9 @@ final class _ReservationFormPageState extends State<ReservationFormPage> {
         children: [
           Text(
             widget.combination.personaName,
-            style: theme.textTheme.titleLarge?.copyWith(
+            style: TextStyle(
+              color: theme.colorScheme.onSurface,
+              fontSize: 18.4,
               fontWeight: FontWeight.w700,
             ),
           ),

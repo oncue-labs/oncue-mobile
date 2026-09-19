@@ -21,15 +21,17 @@ final class OnCueAppBar extends StatelessWidget implements PreferredSizeWidget {
     final theme = Theme.of(context);
     final line = theme.extension<OnCueColors>()?.line ?? theme.colorScheme.outline;
 
+    final titleStyle = TextStyle(
+      color: theme.colorScheme.onSurface,
+      fontSize: 17,
+      fontWeight: FontWeight.w700,
+      letterSpacing: -0.2,
+    );
+
     return AppBar(
-      title: Text(title),
+      title: Text(title, style: titleStyle),
       actions: actions,
-      titleTextStyle: TextStyle(
-        color: theme.colorScheme.onSurface,
-        fontSize: 17,
-        fontWeight: FontWeight.w700,
-        letterSpacing: -0.2,
-      ),
+      titleTextStyle: titleStyle,
       iconTheme: IconThemeData(color: theme.colorScheme.onSurfaceVariant),
       bottom: PreferredSize(
         preferredSize: const Size.fromHeight(_borderHeight),
