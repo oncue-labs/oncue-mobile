@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:oncue_mobile/combination/model/call_combination_card.dart';
+import 'package:oncue_mobile/common/design_system/oncue_colors.dart';
+import 'package:oncue_mobile/common/design_system/widgets/app_card.dart';
+import 'package:oncue_mobile/common/design_system/widgets/primary_button.dart';
 import 'package:oncue_mobile/common/network/api_error.dart';
 import 'package:oncue_mobile/common/permissions/permission_guide_page.dart';
 import 'package:oncue_mobile/reservation/application/reservation_service.dart';
@@ -60,6 +63,16 @@ final class _ReservationFormPageState extends State<ReservationFormPage> {
   @override
   Widget build(BuildContext context) {
     final isEditing = widget.reservationId != null;
+    final theme = Theme.of(context);
+    final fieldFill = theme.extension<OnCueColors>()?.surfaceLight;
+    final fieldBorder = OutlineInputBorder(
+      borderRadius: BorderRadius.circular(12),
+      borderSide: BorderSide(
+        color: theme.extension<OnCueColors>()?.lineStrong ??
+            theme.colorScheme.outline,
+      ),
+    );
+
     return Scaffold(
       appBar: AppBar(title: Text(isEditing ? '예약 수정' : '통화 예약')),
       body: ListView(
@@ -67,10 +80,15 @@ final class _ReservationFormPageState extends State<ReservationFormPage> {
         children: [
           Text(
             widget.combination.personaName,
-            style: Theme.of(context).textTheme.headlineSmall,
+            style: theme.textTheme.titleLarge?.copyWith(
+              fontWeight: FontWeight.w700,
+            ),
           ),
-          const SizedBox(height: 8),
-          Text(widget.combination.scenarioDescription),
+          const SizedBox(height: 4),
+          Text(
+            widget.combination.scenarioDescription,
+            style: TextStyle(color: theme.colorScheme.onSurfaceVariant),
+          ),
           const SizedBox(height: 24),
           TextField(
             key: const ValueKey('scenario-context-input'),
@@ -78,7 +96,10 @@ final class _ReservationFormPageState extends State<ReservationFormPage> {
             decoration: InputDecoration(
               labelText: '시나리오 컨텍스트',
               hintText: widget.combination.scenarioContextPlaceholder,
-              border: const OutlineInputBorder(),
+              filled: true,
+              fillColor: fieldFill,
+              border: fieldBorder,
+              enabledBorder: fieldBorder,
             ),
             maxLines: 4,
           ),
@@ -89,32 +110,80 @@ final class _ReservationFormPageState extends State<ReservationFormPage> {
             decoration: InputDecoration(
               labelText: '통화 목표',
               hintText: widget.combination.callGoalPlaceholder,
-              border: const OutlineInputBorder(),
+              filled: true,
+              fillColor: fieldFill,
+              border: fieldBorder,
+              enabledBorder: fieldBorder,
             ),
             maxLines: 3,
           ),
           const SizedBox(height: 16),
-          ListTile(
+          InkWell(
             key: const ValueKey('scheduled-at-input'),
-            contentPadding: EdgeInsets.zero,
-            title: const Text('통화 예정 시각'),
-            subtitle: Text(_formatScheduledAt(_scheduledAtLocal)),
-            trailing: const Icon(Icons.schedule),
+            borderRadius: BorderRadius.circular(18),
             onTap: _selectScheduledAt,
+            child: AppCard(
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        '통화 예정 시각',
+                        style: TextStyle(
+                          color: theme.colorScheme.onSurfaceVariant,
+                          fontSize: 12,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        _formatScheduledAt(_scheduledAtLocal),
+                        style: const TextStyle(fontWeight: FontWeight.w700),
+                      ),
+                    ],
+                  ),
+                  Icon(Icons.schedule, color: theme.colorScheme.onSurfaceVariant),
+                ],
+              ),
+            ),
           ),
-          const Text('예약 시각은 정확히 보장되지 않을 수 있어요.'),
+          const SizedBox(height: 12),
+          Text(
+            '예약 시각은 정확히 보장되지 않을 수 있어요.',
+            style: TextStyle(color: theme.colorScheme.onSurfaceVariant),
+          ),
           if (_errorMessage case final error?) ...[
             const SizedBox(height: 16),
-            Text(
-              error,
-              style: TextStyle(color: Theme.of(context).colorScheme.error),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: theme.colorScheme.error.withValues(alpha: 0.08),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                  color: theme.colorScheme.error.withValues(alpha: 0.35),
+                ),
+              ),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Icon(Icons.warning_amber, color: theme.colorScheme.error),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      error,
+                      style: TextStyle(color: theme.colorScheme.error),
+                    ),
+                  ),
+                ],
+              ),
             ),
           ],
           const SizedBox(height: 24),
-          FilledButton(
+          PrimaryButton(
             key: const ValueKey('reservation-submit-button'),
             onPressed: _isSaving ? null : _saveReservation,
-            child: Text(isEditing ? '수정하기' : '예약하기'),
+            label: isEditing ? '수정하기' : '예약하기',
           ),
         ],
       ),
