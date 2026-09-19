@@ -59,8 +59,11 @@ final class HeaderBanner extends StatelessWidget {
                   ],
                   Text(
                     title,
-                    style: theme.textTheme.headlineSmall?.copyWith(
+                    style: TextStyle(
+                      color: theme.colorScheme.onSurface,
+                      fontSize: 22.7,
                       fontWeight: FontWeight.w800,
+                      letterSpacing: -0.68,
                     ),
                   ),
                   if (subtitle != null) ...[

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:oncue_mobile/common/design_system/widgets/app_card.dart';
 import 'package:oncue_mobile/common/design_system/widgets/icon_badge.dart';
+import 'package:oncue_mobile/common/design_system/widgets/oncue_app_bar.dart';
 import 'package:oncue_mobile/common/design_system/widgets/primary_button.dart';
 import 'package:oncue_mobile/common/permissions/call_permission_service.dart';
 
@@ -27,7 +28,7 @@ final class _PermissionGuidePageState extends State<PermissionGuidePage> {
     final theme = Theme.of(context);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('통화 권한 안내')),
+      appBar: const OnCueAppBar(title: '통화 권한 안내'),
       body: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(

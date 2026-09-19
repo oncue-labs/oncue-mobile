@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:oncue_mobile/combination/data/mvp_call_combinations.dart';
+import 'package:oncue_mobile/common/design_system/widgets/status_chip.dart';
 import 'package:oncue_mobile/reservation/model/reservation.dart';
 import 'package:oncue_mobile/reservation/presentation/reservation_detail_page.dart';
 
@@ -31,6 +32,24 @@ void main() {
 
     await tester.tap(find.byKey(const ValueKey('edit-reservation-button')));
     expect(editTapped, isTrue);
+  });
+
+  testWidgets('sizes the reservation status chip to its text, not the full row', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        home: ReservationDetailPage(
+          reservation: _reservation(editableUntil: DateTime(2026, 9, 8, 20)),
+          combination: MvpCallCombinations.all.first,
+          now: () => DateTime(2026, 9, 8, 19),
+        ),
+      ),
+    );
+
+    final chipSize = tester.getSize(find.byType(StatusChip));
+
+    expect(chipSize.width, lessThan(150));
   });
 
   testWidgets('disables editing after the five-minute deadline', (tester) async {

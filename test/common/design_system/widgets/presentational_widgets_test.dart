@@ -125,6 +125,17 @@ void main() {
     );
   });
 
+  testWidgets('HeaderBanner renders the title with the mockup type scale', (
+    tester,
+  ) async {
+    await tester.pumpWidget(_harness(const HeaderBanner(title: '전화 예약')));
+
+    final text = tester.widget<Text>(find.text('전화 예약'));
+    expect(text.style?.fontWeight, FontWeight.w800);
+    expect(text.style?.fontSize, closeTo(22.7, 0.5));
+    expect(text.style!.letterSpacing!, lessThan(0));
+  });
+
   testWidgets('HeaderBanner paints a warm radial glow behind its title', (
     tester,
   ) async {

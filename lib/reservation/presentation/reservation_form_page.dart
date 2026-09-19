@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:oncue_mobile/combination/model/call_combination_card.dart';
 import 'package:oncue_mobile/common/design_system/oncue_colors.dart';
 import 'package:oncue_mobile/common/design_system/widgets/app_card.dart';
+import 'package:oncue_mobile/common/design_system/widgets/oncue_app_bar.dart';
 import 'package:oncue_mobile/common/design_system/widgets/pill_note.dart';
 import 'package:oncue_mobile/common/design_system/widgets/primary_button.dart';
 import 'package:oncue_mobile/common/network/api_error.dart';
@@ -75,7 +76,7 @@ final class _ReservationFormPageState extends State<ReservationFormPage> {
     );
 
     return Scaffold(
-      appBar: AppBar(title: Text(isEditing ? '예약 수정' : '통화 예약')),
+      appBar: OnCueAppBar(title: isEditing ? '예약 수정' : '통화 예약'),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:oncue_mobile/combination/model/call_combination_card.dart';
 import 'package:oncue_mobile/common/design_system/oncue_colors.dart';
+import 'package:oncue_mobile/common/design_system/widgets/oncue_app_bar.dart';
 import 'package:oncue_mobile/common/design_system/widgets/pill_note.dart';
 import 'package:oncue_mobile/common/design_system/widgets/status_chip.dart';
 import 'package:oncue_mobile/reservation/model/reservation.dart';
@@ -31,7 +32,7 @@ final class ReservationDetailPage extends StatelessWidget {
         theme.extension<OnCueColors>()?.lineStrong ?? theme.colorScheme.outline;
 
     return Scaffold(
-      appBar: AppBar(title: const Text('예약 상세')),
+      appBar: const OnCueAppBar(title: '예약 상세'),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
@@ -238,7 +239,12 @@ final class _DetailRow extends StatelessWidget {
               style: TextStyle(color: theme.colorScheme.onSurfaceVariant),
             ),
           ),
-          Expanded(child: valueWidget ?? Text(value!)),
+          Flexible(
+            child: Align(
+              alignment: Alignment.centerLeft,
+              child: valueWidget ?? Text(value!),
+            ),
+          ),
         ],
       ),
     );
