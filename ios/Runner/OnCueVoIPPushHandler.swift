@@ -59,6 +59,7 @@ final class OnCueVoIPPushHandler: NSObject, PKPushRegistryDelegate {
       return
     }
 
+    debugLog("VoIP push received")
     let payload = payload.dictionaryPayload
     guard
       let callSessionId = Self.stringValue(payload["callSessionId"]),
@@ -68,11 +69,15 @@ final class OnCueVoIPPushHandler: NSObject, PKPushRegistryDelegate {
       return
     }
 
+    debugLog("Reporting incoming call to CallKit")
     callKitBridge.reportIncomingCall(
       callSessionId: callSessionId,
       displayName: displayName,
       callType: Self.stringValue(payload["callType"]) ?? "voice",
-      completion: { _ in completion() }
+      completion: { error in
+        self.debugLog(error == nil ? "CallKit incoming call reported" : "CallKit incoming call failed")
+        completion()
+      }
     )
   }
 

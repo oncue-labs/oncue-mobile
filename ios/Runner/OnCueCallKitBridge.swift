@@ -140,9 +140,26 @@ final class OnCueCallKitBridge: NSObject, CXProviderDelegate {
     removeCall(callSessionId: callSessionId)
   }
 
-  func provider(_ provider: CXProvider, didActivate audioSession: AVAudioSession) {}
+  func provider(_ provider: CXProvider, didActivate audioSession: AVAudioSession) {
+    do {
+      try audioSession.setCategory(
+        .playAndRecord,
+        mode: .voiceChat,
+        options: [.allowBluetooth, .defaultToSpeaker]
+      )
+      try audioSession.setActive(true)
+    } catch {
+      // WebRTC will surface a connection failure if the audio route cannot be activated.
+    }
+  }
 
-  func provider(_ provider: CXProvider, didDeactivate audioSession: AVAudioSession) {}
+  func provider(_ provider: CXProvider, didDeactivate audioSession: AVAudioSession) {
+    do {
+      try audioSession.setActive(false, options: .notifyOthersOnDeactivation)
+    } catch {
+      // The system may already have deactivated the session.
+    }
+  }
 
   private func removeCall(callSessionId: String) {
     guard let callUUID = uuidByCallSessionId.removeValue(forKey: callSessionId) else {
