@@ -15,6 +15,7 @@ final class OnCueVoIPPushHandler: NSObject, PKPushRegistryDelegate {
 
     pushRegistry.delegate = self
     pushRegistry.desiredPushTypes = [.voIP]
+    debugLog("VoIP push registry configured")
   }
 
   func pushRegistry(
@@ -32,6 +33,7 @@ final class OnCueVoIPPushHandler: NSObject, PKPushRegistryDelegate {
       return
     }
     currentDeviceToken = deviceToken
+    debugLog("VoIP push token received")
     onTokenUpdated?(deviceToken)
   }
 
@@ -43,6 +45,7 @@ final class OnCueVoIPPushHandler: NSObject, PKPushRegistryDelegate {
       return
     }
     currentDeviceToken = nil
+    debugLog("VoIP push token invalidated")
   }
 
   func pushRegistry(
@@ -82,5 +85,11 @@ final class OnCueVoIPPushHandler: NSObject, PKPushRegistryDelegate {
       return value.stringValue
     }
     return nil
+  }
+
+  private func debugLog(_ message: String) {
+    #if DEBUG
+    print("[PushKit] \(message)")
+    #endif
   }
 }

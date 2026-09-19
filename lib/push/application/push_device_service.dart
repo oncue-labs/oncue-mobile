@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:flutter/foundation.dart';
 import 'package:oncue_mobile/push/application/push_device_session_service.dart';
 import 'package:oncue_mobile/push/data/push_device_api_client.dart';
 import 'package:oncue_mobile/push/data/push_device_token_source.dart';
@@ -24,14 +25,25 @@ final class PushDeviceService implements PushDeviceSessionService {
   Future<void> attachSession(String accessToken) async {
     _accessToken = accessToken;
     final deviceToken = await _tokenSource.currentDeviceToken();
+    _debugLog(
+      'session attached: tokenAvailable=${deviceToken != null && deviceToken.trim().isNotEmpty}, '
+      'environment=${environment.wireValue}',
+    );
     if (deviceToken == null || deviceToken.trim().isEmpty) {
+      _debugLog('registration skipped because no VoIP token is available');
       return;
     }
-    await _apiClient.register(
-      deviceToken: deviceToken,
-      environment: environment,
-      accessToken: accessToken,
-    );
+    try {
+      await _apiClient.register(
+        deviceToken: deviceToken,
+        environment: environment,
+        accessToken: accessToken,
+      );
+      _debugLog('device registration succeeded');
+    } catch (error) {
+      _debugLog('device registration failed: ${error.runtimeType}');
+      rethrow;
+    }
   }
 
   @override
@@ -42,6 +54,7 @@ final class PushDeviceService implements PushDeviceSessionService {
 
   Future<void> _handleTokenUpdate(String deviceToken) async {
     final accessToken = _accessToken;
+    _debugLog('VoIP token update received: sessionAttached=${accessToken != null}');
     if (accessToken == null || deviceToken.trim().isEmpty) {
       return;
     }
@@ -51,8 +64,18 @@ final class PushDeviceService implements PushDeviceSessionService {
         environment: environment,
         accessToken: accessToken,
       );
-    } catch (_) {
+      _debugLog('device registration after token update succeeded');
+    } catch (error) {
+      _debugLog(
+        'device registration after token update failed: ${error.runtimeType}',
+      );
       // A later token event or session restore retries registration.
+    }
+  }
+
+  void _debugLog(String message) {
+    if (kDebugMode) {
+      debugPrint('[PushDevice] $message');
     }
   }
 
