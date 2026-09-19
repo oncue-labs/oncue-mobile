@@ -3,6 +3,9 @@
 *.log
 *.pyc
 *.swp
+
+# Local visual-regression captures used to draft the PR — not shipped
+.preview-captures/
 .DS_Store
 .atom/
 .build/

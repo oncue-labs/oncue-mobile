@@ -41,7 +41,7 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.text('OnCue 로그인'), findsOneWidget);
+    expect(find.text('원하는 순간에 걸려올 전화를 만들어보세요.'), findsOneWidget);
     expect(find.byKey(const ValueKey('login-kakao-button')), findsOneWidget);
   });
 
@@ -98,7 +98,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(store.savedSession, isNull);
-    expect(find.text('OnCue 로그인'), findsOneWidget);
+    expect(find.text('원하는 순간에 걸려올 전화를 만들어보세요.'), findsOneWidget);
   });
 }
 

@@ -1,5 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:oncue_mobile/auth/model/auth_provider.dart';
+import 'package:oncue_mobile/common/design_system/widgets/kakao_symbol.dart';
+import 'package:oncue_mobile/common/design_system/widgets/outline_button.dart';
+import 'package:oncue_mobile/common/design_system/widgets/primary_button.dart';
+
+const _kakaoBackground = Color(0xFFFEE500);
+const _kakaoForeground = Color(0xFF191600);
 
 final class LoginPage extends StatefulWidget {
   const LoginPage({super.key, required this.onLogin});
@@ -16,53 +22,82 @@ final class _LoginPageState extends State<LoginPage> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
     return Scaffold(
-      appBar: AppBar(title: const Text('OnCue 로그인')),
-      body: Center(
-        child: Padding(
-          padding: const EdgeInsets.all(24),
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 360),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Text(
-                  '로그인하고 통화 조합을 선택해보세요.',
-                  textAlign: TextAlign.center,
-                  style: Theme.of(context).textTheme.titleMedium,
-                ),
-                const SizedBox(height: 24),
-                FilledButton(
-                  key: const ValueKey('login-kakao-button'),
-                  onPressed: _isLoading
-                      ? null
-                      : () => _login(AuthProvider.kakao),
-                  child: const Text('카카오로 로그인'),
-                ),
-                const SizedBox(height: 12),
-                OutlinedButton(
-                  key: const ValueKey('login-x-button'),
-                  onPressed: _isLoading ? null : () => _login(AuthProvider.x),
-                  child: const Text('X로 로그인'),
-                ),
-                if (_isLoading) ...[
-                  const SizedBox(height: 20),
-                  const Center(child: CircularProgressIndicator()),
-                ],
-                if (_errorMessage != null) ...[
-                  const SizedBox(height: 20),
-                  Text(
-                    _errorMessage!,
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      color: Theme.of(context).colorScheme.error,
-                    ),
+      body: SafeArea(
+        child: Stack(
+          children: [
+            Center(
+              child: Padding(
+                padding: const EdgeInsets.all(24),
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 360),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      Column(
+                        children: [
+                          Image.asset(
+                            'assets/images/oncue_logo.png',
+                            width: 56,
+                            height: 56,
+                          ),
+                          const SizedBox(height: 10),
+                          Text('OnCue', style: theme.textTheme.titleLarge),
+                          const SizedBox(height: 8),
+                          Text(
+                            '원하는 순간에 걸려올 전화를 만들어보세요.',
+                            textAlign: TextAlign.center,
+                            style: theme.textTheme.bodyMedium?.copyWith(
+                              color: theme.colorScheme.onSurfaceVariant,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 34),
+                      PrimaryButton(
+                        key: const ValueKey('login-kakao-button'),
+                        label: '카카오로 로그인',
+                        icon: const KakaoSymbol(color: _kakaoForeground),
+                        backgroundColor: _kakaoBackground,
+                        foregroundColor: _kakaoForeground,
+                        onPressed: _isLoading
+                            ? null
+                            : () => _login(AuthProvider.kakao),
+                      ),
+                      const SizedBox(height: 12),
+                      OutlineButton(
+                        key: const ValueKey('login-x-button'),
+                        label: 'X로 로그인',
+                        icon: const Text(
+                          '𝕏',
+                          style: TextStyle(fontWeight: FontWeight.bold),
+                        ),
+                        onPressed: _isLoading
+                            ? null
+                            : () => _login(AuthProvider.x),
+                      ),
+                      if (_errorMessage != null) ...[
+                        const SizedBox(height: 20),
+                        Text(
+                          _errorMessage!,
+                          textAlign: TextAlign.center,
+                          style: TextStyle(color: theme.colorScheme.error),
+                        ),
+                      ],
+                    ],
                   ),
-                ],
-              ],
+                ),
+              ),
             ),
-          ),
+            if (_isLoading)
+              ColoredBox(
+                color: theme.colorScheme.surface.withValues(alpha: 0.55),
+                child: const Center(child: CircularProgressIndicator()),
+              ),
+          ],
         ),
       ),
     );

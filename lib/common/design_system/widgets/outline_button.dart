@@ -4,10 +4,16 @@ import 'package:oncue_mobile/common/design_system/oncue_colors.dart';
 /// Full-width secondary action button, matching `.btn-outline` in
 /// `design/mockups/tokens.css`.
 final class OutlineButton extends StatelessWidget {
-  const OutlineButton({super.key, required this.label, required this.onPressed});
+  const OutlineButton({
+    super.key,
+    required this.label,
+    required this.onPressed,
+    this.icon,
+  });
 
   final String label;
   final VoidCallback? onPressed;
+  final Widget? icon;
 
   @override
   Widget build(BuildContext context) {
@@ -27,7 +33,13 @@ final class OutlineButton extends StatelessWidget {
             borderRadius: BorderRadius.circular(14),
           ),
         ),
-        child: Text(label, style: const TextStyle(fontWeight: FontWeight.w700)),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (icon != null) ...[icon!, const SizedBox(width: 6)],
+            Text(label, style: const TextStyle(fontWeight: FontWeight.w700)),
+          ],
+        ),
       ),
     );
   }
