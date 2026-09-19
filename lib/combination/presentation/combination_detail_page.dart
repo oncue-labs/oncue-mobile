@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:oncue_mobile/combination/model/call_combination_card.dart';
 import 'package:oncue_mobile/common/design_system/oncue_colors.dart';
+import 'package:oncue_mobile/common/design_system/oncue_typography.dart';
 import 'package:oncue_mobile/common/design_system/widgets/oncue_app_bar.dart';
 import 'package:oncue_mobile/common/design_system/widgets/outline_button.dart';
 import 'package:oncue_mobile/common/design_system/widgets/primary_button.dart';
@@ -67,11 +68,7 @@ final class _CombinationDetailPageState extends State<CombinationDetailPage> {
           Text(
             widget.combination.personaName,
             key: ValueKey('detail-persona-${widget.combination.personaKey}'),
-            style: TextStyle(
-              color: theme.colorScheme.onSurface,
-              fontSize: 18.4,
-              fontWeight: FontWeight.w700,
-            ),
+            style: pageTitleStyle(context),
           ),
           const SizedBox(height: 4),
           Text(

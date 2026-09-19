@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:oncue_mobile/common/design_system/oncue_typography.dart';
 
 /// Top-level tab screen header, matching `.header-banner` in
 /// `design/mockups/tokens.css`.
@@ -57,15 +58,7 @@ final class HeaderBanner extends StatelessWidget {
                     ),
                     const SizedBox(height: 6),
                   ],
-                  Text(
-                    title,
-                    style: TextStyle(
-                      color: theme.colorScheme.onSurface,
-                      fontSize: 22.7,
-                      fontWeight: FontWeight.w800,
-                      letterSpacing: -0.68,
-                    ),
-                  ),
+                  Text(title, style: pageTitleStyle(context)),
                   if (subtitle != null) ...[
                     const SizedBox(height: 4),
                     Text(

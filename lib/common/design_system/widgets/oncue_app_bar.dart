@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:oncue_mobile/common/design_system/oncue_colors.dart';
+import 'package:oncue_mobile/common/design_system/oncue_typography.dart';
 
 /// Drill-down screen header, matching `.app-bar` in
 /// `design/mockups/tokens.css` — a muted back caret, a tight bold title
@@ -21,12 +22,7 @@ final class OnCueAppBar extends StatelessWidget implements PreferredSizeWidget {
     final theme = Theme.of(context);
     final line = theme.extension<OnCueColors>()?.line ?? theme.colorScheme.outline;
 
-    final titleStyle = TextStyle(
-      color: theme.colorScheme.onSurface,
-      fontSize: 17,
-      fontWeight: FontWeight.w700,
-      letterSpacing: -0.2,
-    );
+    final titleStyle = pageTitleStyle(context);
 
     return AppBar(
       title: Text(title, style: titleStyle),

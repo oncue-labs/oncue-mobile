@@ -31,8 +31,8 @@ void main() {
     await tester.pumpWidget(harnessWithBackStack(const OnCueAppBar(title: '예약 상세')));
 
     final titleText = tester.widget<Text>(find.text('예약 상세'));
-    expect(titleText.style?.fontSize, closeTo(17, 0.5));
-    expect(titleText.style?.fontWeight, FontWeight.w700);
+    expect(titleText.style?.fontSize, closeTo(22.7, 0.5));
+    expect(titleText.style?.fontWeight, FontWeight.w800);
   });
 
   testWidgets('draws a bottom border line under the app bar', (tester) async {

@@ -28,8 +28,8 @@ void main() {
     );
 
     final heading = tester.widget<Text>(find.text(combination.personaName));
-    expect(heading.style?.fontSize, closeTo(18.4, 0.5));
-    expect(heading.style?.fontWeight, FontWeight.w700);
+    expect(heading.style?.fontSize, closeTo(22.7, 0.5));
+    expect(heading.style?.fontWeight, FontWeight.w800);
   });
 
   testWidgets('shows both scenario input guides and the timing notice', (

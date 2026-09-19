@@ -80,10 +80,15 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.byKey(const ValueKey('detail-persona-friend')), findsOneWidget);
+    expect(
+      find.byType(BackButton),
+      findsOneWidget,
+      reason: 'the pushed detail screen must offer a way back to the list',
+    );
     final heading = tester.widget<Text>(
       find.byKey(const ValueKey('detail-persona-friend')),
     );
-    expect(heading.style?.fontSize, closeTo(18.4, 0.5));
+    expect(heading.style?.fontSize, closeTo(22.7, 0.5));
     await tester.fling(find.byType(ListView), const Offset(0, -1000), 1000);
     await tester.pump();
 
@@ -125,6 +130,11 @@ void main() {
     await tester.tap(find.byKey(const ValueKey('reserve-combination-button')));
     await tester.pumpAndSettle();
 
+    expect(
+      find.byType(BackButton),
+      findsOneWidget,
+      reason: 'the pushed reservation form must offer a way back',
+    );
     final form = tester.widget<ReservationFormPage>(
       find.byType(ReservationFormPage),
     );

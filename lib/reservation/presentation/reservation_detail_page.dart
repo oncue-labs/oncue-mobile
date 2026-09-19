@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:oncue_mobile/combination/model/call_combination_card.dart';
 import 'package:oncue_mobile/common/design_system/oncue_colors.dart';
+import 'package:oncue_mobile/common/design_system/oncue_typography.dart';
 import 'package:oncue_mobile/common/design_system/widgets/oncue_app_bar.dart';
 import 'package:oncue_mobile/common/design_system/widgets/pill_note.dart';
 import 'package:oncue_mobile/common/design_system/widgets/status_chip.dart';
@@ -38,14 +39,7 @@ final class ReservationDetailPage extends StatelessWidget {
         children: [
           _PersonaImage(assetPath: combination.personaImageAsset),
           const SizedBox(height: 16),
-          Text(
-            combination.personaName,
-            style: TextStyle(
-              color: theme.colorScheme.onSurface,
-              fontSize: 18.4,
-              fontWeight: FontWeight.w700,
-            ),
-          ),
+          Text(combination.personaName, style: pageTitleStyle(context)),
           const SizedBox(height: 4),
           Text(
             combination.scenarioDescription,

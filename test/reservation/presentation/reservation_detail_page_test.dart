@@ -50,8 +50,8 @@ void main() {
     final heading = tester.widget<Text>(
       find.text(MvpCallCombinations.all.first.personaName),
     );
-    expect(heading.style?.fontSize, closeTo(18.4, 0.5));
-    expect(heading.style?.fontWeight, FontWeight.w700);
+    expect(heading.style?.fontSize, closeTo(22.7, 0.5));
+    expect(heading.style?.fontWeight, FontWeight.w800);
   });
 
   testWidgets('sizes the reservation status chip to its text, not the full row', (
