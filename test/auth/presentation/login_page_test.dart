@@ -15,6 +15,10 @@ void main() {
     expect(find.text('원하는 순간에 걸려올 전화를 만들어보세요.'), findsOneWidget);
     expect(find.text('카카오로 로그인'), findsOneWidget);
     expect(find.text('X로 로그인'), findsOneWidget);
+
+    final brandTitle = tester.widget<Text>(find.text('OnCue'));
+    expect(brandTitle.style?.fontSize, closeTo(22.7, 0.5));
+    expect(brandTitle.style?.fontWeight, FontWeight.w800);
   });
 
   testWidgets('shows an inline error message when login fails', (

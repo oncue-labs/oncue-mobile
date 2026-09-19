@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:oncue_mobile/auth/model/auth_provider.dart';
+import 'package:oncue_mobile/common/design_system/oncue_typography.dart';
 import 'package:oncue_mobile/common/design_system/widgets/kakao_symbol.dart';
 import 'package:oncue_mobile/common/design_system/widgets/outline_button.dart';
 import 'package:oncue_mobile/common/design_system/widgets/primary_button.dart';
@@ -45,7 +46,7 @@ final class _LoginPageState extends State<LoginPage> {
                             height: 56,
                           ),
                           const SizedBox(height: 10),
-                          Text('OnCue', style: theme.textTheme.titleLarge),
+                          Text('OnCue', style: pageTitleStyle(context)),
                           const SizedBox(height: 8),
                           Text(
                             '원하는 순간에 걸려올 전화를 만들어보세요.',
