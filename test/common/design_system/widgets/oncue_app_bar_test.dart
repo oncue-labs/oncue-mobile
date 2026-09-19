@@ -35,6 +35,17 @@ void main() {
     expect(titleText.style?.fontWeight, FontWeight.w800);
   });
 
+  testWidgets(
+    'gives the title the same generous vertical room as HeaderBanner',
+    (tester) async {
+      await tester.pumpWidget(
+        harnessWithBackStack(const OnCueAppBar(title: '예약 상세')),
+      );
+
+      expect(const OnCueAppBar(title: '예약 상세').preferredSize.height, 85);
+    },
+  );
+
   testWidgets('draws a bottom border line under the app bar', (tester) async {
     await tester.pumpWidget(harnessWithBackStack(const OnCueAppBar(title: '예약 상세')));
 

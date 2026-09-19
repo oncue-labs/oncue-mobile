@@ -81,6 +81,8 @@ void main() {
       ),
     );
 
+    await tester.fling(find.byType(ListView), const Offset(0, -1000), 1000);
+    await tester.pump();
     await tester.tap(find.byKey(const ValueKey('reservation-submit-button')));
     await tester.pumpAndSettle();
 
@@ -116,6 +118,8 @@ void main() {
       find.byKey(const ValueKey('call-goal-input')),
       '민수가 빨리 잠들게 해 주세요.',
     );
+    await tester.fling(find.byType(ListView), const Offset(0, -1000), 1000);
+    await tester.pump();
     await tester.tap(find.byKey(const ValueKey('reservation-submit-button')));
     await tester.pumpAndSettle();
 
@@ -151,6 +155,8 @@ void main() {
     expect(find.text('기존 아이 이름은 민수예요.'), findsOneWidget);
     expect(find.text('기존 목표를 유지해 주세요.'), findsOneWidget);
 
+    await tester.fling(find.byType(ListView), const Offset(0, -1000), 1000);
+    await tester.pump();
     await tester.tap(find.byKey(const ValueKey('reservation-submit-button')));
     await tester.pumpAndSettle();
 

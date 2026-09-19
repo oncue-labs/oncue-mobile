@@ -13,9 +13,14 @@ final class OnCueAppBar extends StatelessWidget implements PreferredSizeWidget {
 
   static const double _borderHeight = 1;
 
+  /// Matches HeaderBanner's minHeight so a page title carries the same
+  /// visual weight whether it sits in a top-level tab banner or a
+  /// drill-down app bar.
+  static const double _toolbarHeight = 84;
+
   @override
   Size get preferredSize =>
-      const Size.fromHeight(kToolbarHeight + _borderHeight);
+      const Size.fromHeight(_toolbarHeight + _borderHeight);
 
   @override
   Widget build(BuildContext context) {
@@ -28,6 +33,7 @@ final class OnCueAppBar extends StatelessWidget implements PreferredSizeWidget {
       title: Text(title, style: titleStyle),
       actions: actions,
       titleTextStyle: titleStyle,
+      toolbarHeight: _toolbarHeight,
       iconTheme: IconThemeData(color: theme.colorScheme.onSurfaceVariant),
       bottom: PreferredSize(
         preferredSize: const Size.fromHeight(_borderHeight),
