@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:oncue_mobile/call/application/immediate_call_test_service.dart';
 import 'package:oncue_mobile/combination/model/call_combination_card.dart';
+import 'package:oncue_mobile/common/design_system/oncue_typography.dart';
 
 /// Local WebRTC test call screen.
 ///
@@ -76,11 +77,7 @@ final class _ImmediateCallPageState extends State<ImmediateCallPage> {
                   const SizedBox(height: 20),
                   Text(
                     widget.combination.personaName,
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 22,
-                      fontWeight: FontWeight.w700,
-                    ),
+                    style: pageTitleStyle(context),
                   ),
                   const SizedBox(height: 6),
                   Text(
