@@ -99,6 +99,8 @@ final class _RecordingSystemCallManager implements SystemCallManager {
   final StreamController<String> _rejected =
       StreamController<String>.broadcast();
   final StreamController<String> _ended = StreamController<String>.broadcast();
+  final StreamController<String> _audioActivated =
+      StreamController<String>.broadcast();
   bool _shouldFailPresentation = false;
 
   @override
@@ -109,6 +111,9 @@ final class _RecordingSystemCallManager implements SystemCallManager {
 
   @override
   Stream<String> get onEnded => _ended.stream;
+
+  @override
+  Stream<String> get onAudioActivated => _audioActivated.stream;
 
   @override
   Future<void> presentIncomingCall(IncomingCallDisplayInfo call) async {
@@ -135,6 +140,11 @@ final class _RecordingSystemCallManager implements SystemCallManager {
   void emitEnded(String callSessionId) => _ended.add(callSessionId);
 
   Future<void> dispose() async {
-    await Future.wait([_answered.close(), _rejected.close(), _ended.close()]);
+    await Future.wait([
+      _answered.close(),
+      _rejected.close(),
+      _ended.close(),
+      _audioActivated.close(),
+    ]);
   }
 }

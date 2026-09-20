@@ -6,12 +6,12 @@ final class OnCueCallKitBridge: NSObject, CXProviderDelegate {
   static let answeredEvent = "onAnswered"
   static let rejectedEvent = "onRejected"
   static let endedEvent = "onEnded"
+  static let audioActivatedEvent = "onAudioActivated"
 
   private let provider: CXProvider
   private let callController: CXCallController
   private var callSessionIdByUUID: [UUID: String] = [:]
   private var uuidByCallSessionId: [String: UUID] = [:]
-  private var pendingAnswerActions: [String: CXAnswerCallAction] = [:]
   private var answeredCallSessionIds: Set<String> = []
   private var appEndedCallSessionIds: Set<String> = []
 
@@ -87,27 +87,17 @@ final class OnCueCallKitBridge: NSObject, CXProviderDelegate {
   }
 
   func answerSucceeded(callSessionId: String) {
-    guard let action = pendingAnswerActions.removeValue(forKey: callSessionId) else {
-      return
-    }
-
+    // The CXAnswerCallAction is fulfilled immediately in the provider delegate.
+    // Keep this method for the Flutter channel contract; it is now idempotent.
     answeredCallSessionIds.insert(callSessionId)
-    action.fulfill()
   }
 
   func answerFailed(callSessionId: String) {
-    guard let action = pendingAnswerActions.removeValue(forKey: callSessionId) else {
-      return
-    }
-
-    action.fail()
     answeredCallSessionIds.remove(callSessionId)
     removeCall(callSessionId: callSessionId)
   }
 
   func providerDidReset(_ provider: CXProvider) {
-    pendingAnswerActions.values.forEach { $0.fail() }
-    pendingAnswerActions.removeAll()
     answeredCallSessionIds.removeAll()
     appEndedCallSessionIds.removeAll()
     callSessionIdByUUID.removeAll()
@@ -120,7 +110,11 @@ final class OnCueCallKitBridge: NSObject, CXProviderDelegate {
       return
     }
 
-    pendingAnswerActions[callSessionId] = action
+    // CallKit expects this action to be fulfilled promptly. Waiting for the
+    // Flutter isolate to receive and process onAnswered can make iOS end the
+    // call before WebRTC starts, especially when the app is backgrounded.
+    answeredCallSessionIds.insert(callSessionId)
+    action.fulfill()
     eventHandler?(Self.answeredEvent, callSessionId)
   }
 
@@ -136,7 +130,6 @@ final class OnCueCallKitBridge: NSObject, CXProviderDelegate {
       : Self.rejectedEvent
     eventHandler?(event, callSessionId)
     action.fulfill()
-    pendingAnswerActions.removeValue(forKey: callSessionId)?.fail()
     removeCall(callSessionId: callSessionId)
   }
 
@@ -148,6 +141,9 @@ final class OnCueCallKitBridge: NSObject, CXProviderDelegate {
         options: [.allowBluetooth, .defaultToSpeaker]
       )
       try audioSession.setActive(true)
+      if let callSessionId = answeredCallSessionIds.first {
+        eventHandler?(Self.audioActivatedEvent, callSessionId)
+      }
     } catch {
       // WebRTC will surface a connection failure if the audio route cannot be activated.
     }

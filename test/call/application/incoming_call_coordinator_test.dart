@@ -32,6 +32,29 @@ void main() {
     expect(events, ['answer-succeeded', 'connect']);
   });
 
+  test('waits for CallKit audio activation before connecting media', () async {
+    final systemCallManager = _FakeSystemCallManager(
+      emitAudioActivationOnAnswer: false,
+    );
+    final connection = _FakeCallConnection();
+    final coordinator = IncomingCallCoordinator(
+      systemCallManager: systemCallManager,
+      authSessionProvider: _FakeAuthSessionProvider(_session()),
+      callSessionApi: _FakeCallSessionApi(),
+      callConnection: connection,
+    );
+
+    final answer = coordinator.handleAnswered('321');
+    await Future<void>.delayed(Duration.zero);
+
+    expect(connection.connectedCallSessionId, isNull);
+
+    systemCallManager.emitAudioActivated('321');
+    await answer;
+
+    expect(connection.connectedCallSessionId, '321');
+  });
+
   test(
     'ends the system call when the answer connection fails',
     () async {
@@ -159,9 +182,13 @@ final class _FakeCallSessionApi implements CallSessionCommandApi {
 }
 
 final class _FakeSystemCallManager implements SystemCallManager {
+  _FakeSystemCallManager({this.emitAudioActivationOnAnswer = true});
+
+  final bool emitAudioActivationOnAnswer;
   final _answered = StreamController<String>.broadcast();
   final _rejected = StreamController<String>.broadcast();
   final _ended = StreamController<String>.broadcast();
+  final _audioActivated = StreamController<String>.broadcast();
   final succeededCallSessionIds = <String>[];
   final failedCallSessionIds = <String>[];
   final endedCallSessionIds = <String>[];
@@ -177,6 +204,9 @@ final class _FakeSystemCallManager implements SystemCallManager {
   Stream<String> get onEnded => _ended.stream;
 
   @override
+  Stream<String> get onAudioActivated => _audioActivated.stream;
+
+  @override
   Future<void> presentIncomingCall(IncomingCallDisplayInfo call) async {}
 
   @override
@@ -188,10 +218,26 @@ final class _FakeSystemCallManager implements SystemCallManager {
   Future<void> answerSucceeded(String callSessionId) async {
     succeededCallSessionIds.add(callSessionId);
     onAnswerSucceeded?.call();
+    if (emitAudioActivationOnAnswer) {
+      _audioActivated.add(callSessionId);
+    }
   }
 
   @override
   Future<void> answerFailed(String callSessionId) async {
     failedCallSessionIds.add(callSessionId);
+  }
+
+  void emitAudioActivated(String callSessionId) {
+    _audioActivated.add(callSessionId);
+  }
+
+  Future<void> dispose() async {
+    await Future.wait([
+      _answered.close(),
+      _rejected.close(),
+      _ended.close(),
+      _audioActivated.close(),
+    ]);
   }
 }

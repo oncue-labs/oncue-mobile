@@ -18,6 +18,7 @@ final class MethodChannelSystemCallManager implements SystemCallManager {
   static const _answeredEvent = 'onAnswered';
   static const _rejectedEvent = 'onRejected';
   static const _endedEvent = 'onEnded';
+  static const _audioActivatedEvent = 'onAudioActivated';
 
   final MethodChannel _channel;
   final StreamController<String> _answered =
@@ -25,6 +26,8 @@ final class MethodChannelSystemCallManager implements SystemCallManager {
   final StreamController<String> _rejected =
       StreamController<String>.broadcast();
   final StreamController<String> _ended = StreamController<String>.broadcast();
+  final StreamController<String> _audioActivated =
+      StreamController<String>.broadcast();
 
   @override
   Stream<String> get onAnswered => _answered.stream;
@@ -34,6 +37,9 @@ final class MethodChannelSystemCallManager implements SystemCallManager {
 
   @override
   Stream<String> get onEnded => _ended.stream;
+
+  @override
+  Stream<String> get onAudioActivated => _audioActivated.stream;
 
   @override
   Future<void> presentIncomingCall(IncomingCallDisplayInfo call) {
@@ -82,6 +88,8 @@ final class MethodChannelSystemCallManager implements SystemCallManager {
         _rejected.add(callSessionId);
       case _endedEvent:
         _ended.add(callSessionId);
+      case _audioActivatedEvent:
+        _audioActivated.add(callSessionId);
       default:
         throw MissingPluginException(
           'Unknown system call event: ${call.method}',
@@ -99,6 +107,11 @@ final class MethodChannelSystemCallManager implements SystemCallManager {
 
   Future<void> dispose() async {
     _channel.setMethodCallHandler(null);
-    await Future.wait([_answered.close(), _rejected.close(), _ended.close()]);
+    await Future.wait([
+      _answered.close(),
+      _rejected.close(),
+      _ended.close(),
+      _audioActivated.close(),
+    ]);
   }
 }

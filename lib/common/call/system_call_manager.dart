@@ -30,6 +30,9 @@ abstract interface class SystemCallManager {
 
   Stream<String> get onEnded;
 
+  /// CallKit has activated the iOS audio session for this answered call.
+  Stream<String> get onAudioActivated;
+
   Future<void> presentIncomingCall(IncomingCallDisplayInfo call);
 
   Future<void> endCall(String callSessionId);

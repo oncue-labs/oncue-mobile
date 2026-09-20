@@ -25,6 +25,8 @@ final class IncomingCallCoordinator {
   final CallSessionCommandApi _callSessionApi;
   final CallConnection _callConnection;
   final List<StreamSubscription<String>> _subscriptions = [];
+  final Set<String> _activatedAudioCallSessionIds = <String>{};
+  final Map<String, List<Completer<void>>> _audioActivationWaiters = {};
   String? _activeCallSessionId;
   bool _started = false;
 
@@ -51,9 +53,13 @@ final class IncomingCallCoordinator {
             unawaited(_ignoreStreamError(handleEnded(callSessionId))),
       ),
     );
+    _subscriptions.add(
+      _systemCallManager.onAudioActivated.listen(_handleAudioActivated),
+    );
   }
 
   Future<void> handleAnswered(String callSessionId) async {
+    start();
     final session = _authSessionProvider.currentSession;
     if (session == null) {
       await _systemCallManager.answerFailed(callSessionId);
@@ -69,6 +75,7 @@ final class IncomingCallCoordinator {
       // CallKit activates iOS's audio session only after the answer action is
       // fulfilled. WebRTC must start after that activation, not before it.
       await _systemCallManager.answerSucceeded(callSessionId);
+      await _waitForAudioActivation(callSessionId);
       await _callConnection.connect(
         callSessionId,
         accessToken: session.accessToken,
@@ -109,9 +116,41 @@ final class IncomingCallCoordinator {
       _subscriptions.map((subscription) => subscription.cancel()),
     );
     _subscriptions.clear();
+    _activatedAudioCallSessionIds.clear();
+    _audioActivationWaiters.clear();
     _started = false;
     _activeCallSessionId = null;
     await _callConnection.hangup();
+  }
+
+  void _handleAudioActivated(String callSessionId) {
+    final waiters = _audioActivationWaiters.remove(callSessionId);
+    if (waiters == null || waiters.isEmpty) {
+      _activatedAudioCallSessionIds.add(callSessionId);
+      return;
+    }
+    for (final waiter in waiters) {
+      if (!waiter.isCompleted) {
+        waiter.complete();
+      }
+    }
+  }
+
+  Future<void> _waitForAudioActivation(String callSessionId) {
+    if (_activatedAudioCallSessionIds.remove(callSessionId)) {
+      return Future<void>.value();
+    }
+
+    final waiter = Completer<void>();
+    _audioActivationWaiters
+        .putIfAbsent(callSessionId, () => <Completer<void>>[])
+        .add(waiter);
+    return waiter.future.timeout(
+      const Duration(seconds: 5),
+      onTimeout: () => throw StateError(
+        'CallKit audio session was not activated for $callSessionId.',
+      ),
+    );
   }
 
   Future<void> _ignoreStreamError(Future<void> operation) async {

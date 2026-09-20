@@ -57,6 +57,8 @@ void main() {
     final answered = expectLater(manager.onAnswered, emits('12345'));
     final rejected = expectLater(manager.onRejected, emits('12345'));
     final ended = expectLater(manager.onEnded, emits('12345'));
+    final audioActivated =
+        expectLater(manager.onAudioActivated, emits('12345'));
 
     final messenger =
         TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger;
@@ -76,8 +78,13 @@ void main() {
       codec.encodeMethodCall(const MethodCall('onEnded', '12345')),
       (_) {},
     );
+    await messenger.handlePlatformMessage(
+      channel.name,
+      codec.encodeMethodCall(const MethodCall('onAudioActivated', '12345')),
+      (_) {},
+    );
 
-    await Future.wait([answered, rejected, ended]);
+    await Future.wait([answered, rejected, ended, audioActivated]);
   });
 
   test('rejects malformed native lifecycle events', () async {
