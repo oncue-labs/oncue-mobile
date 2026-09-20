@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:oncue_mobile/combination/model/call_combination_card.dart';
 import 'package:oncue_mobile/common/design_system/oncue_colors.dart';
@@ -7,12 +9,14 @@ import 'package:oncue_mobile/common/design_system/widgets/pill_note.dart';
 import 'package:oncue_mobile/common/design_system/widgets/status_chip.dart';
 import 'package:oncue_mobile/reservation/model/reservation.dart';
 
-final class ReservationDetailPage extends StatelessWidget {
+final class ReservationDetailPage extends StatefulWidget {
   const ReservationDetailPage({
     super.key,
     required this.reservation,
     required this.combination,
     this.now = DateTime.now,
+    this.loadReservation,
+    this.callFinishedEvents,
     this.onEdit,
     this.onCancel,
     this.onStartTestCall,
@@ -21,9 +25,80 @@ final class ReservationDetailPage extends StatelessWidget {
   final Reservation reservation;
   final CallCombinationCard combination;
   final DateTime Function() now;
+  final Future<Reservation> Function()? loadReservation;
+  final Stream<String>? callFinishedEvents;
   final Future<void> Function()? onEdit;
   final Future<void> Function()? onCancel;
   final Future<void> Function()? onStartTestCall;
+
+  @override
+  State<ReservationDetailPage> createState() => _ReservationDetailPageState();
+}
+
+final class _ReservationDetailPageState extends State<ReservationDetailPage>
+    with WidgetsBindingObserver {
+  late Reservation _reservation;
+  StreamSubscription<String>? _callFinishedSubscription;
+
+  Reservation get reservation => _reservation;
+  CallCombinationCard get combination => widget.combination;
+  DateTime Function() get now => widget.now;
+  Future<void> Function()? get onEdit => widget.onEdit;
+  Future<void> Function()? get onCancel => widget.onCancel;
+  Future<void> Function()? get onStartTestCall => widget.onStartTestCall;
+
+  @override
+  void initState() {
+    super.initState();
+    _reservation = widget.reservation;
+    WidgetsBinding.instance.addObserver(this);
+    _callFinishedSubscription = widget.callFinishedEvents?.listen((_) {
+      unawaited(_reloadReservationAfterCall());
+    });
+    unawaited(_reloadReservation());
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      _reloadReservation();
+    }
+  }
+
+  @override
+  void dispose() {
+    unawaited(_callFinishedSubscription?.cancel());
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  Future<void> _reloadReservationAfterCall() async {
+    for (var attempt = 0; attempt < 3; attempt++) {
+      await Future<void>.delayed(const Duration(milliseconds: 300));
+      await _reloadReservation();
+      if (!mounted || _reservation.callOutcome != null) {
+        return;
+      }
+    }
+  }
+
+  Future<void> _reloadReservation() async {
+    final loadReservation = widget.loadReservation;
+    if (loadReservation == null) {
+      return;
+    }
+    try {
+      final refreshedReservation = await loadReservation();
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        _reservation = refreshedReservation;
+      });
+    } catch (_) {
+      // Keep the last known reservation when a background refresh fails.
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -177,6 +252,9 @@ final class ReservationDetailPage extends StatelessWidget {
   }
 
   String get _callStatusLabel {
+    if (reservation.endedAt != null && reservation.callOutcome != null) {
+      return '완료';
+    }
     return switch (reservation.callStatus) {
       'RINGING' => '수신 대기',
       'CONNECTING' => '연결 중',
@@ -188,7 +266,7 @@ final class ReservationDetailPage extends StatelessWidget {
 
   String get _callOutcomeLabel {
     return switch (reservation.callOutcome) {
-      'SUCCEEDED' => '성공',
+      'SUCCEEDED' => '완료',
       'FAILED' => '실패',
       null => '진행 중',
       _ => reservation.callOutcome!,

@@ -25,10 +25,13 @@ final class IncomingCallCoordinator {
   final CallSessionCommandApi _callSessionApi;
   final CallConnection _callConnection;
   final List<StreamSubscription<String>> _subscriptions = [];
-  final Set<String> _activatedAudioCallSessionIds = <String>{};
-  final Map<String, List<Completer<void>>> _audioActivationWaiters = {};
+  final StreamController<String> _callFinishedController =
+      StreamController<String>.broadcast();
   String? _activeCallSessionId;
   bool _started = false;
+
+  /// Emits the call session ID after the system call has ended locally.
+  Stream<String> get onCallFinished => _callFinishedController.stream;
 
   void start() {
     if (_started) {
@@ -54,7 +57,11 @@ final class IncomingCallCoordinator {
       ),
     );
     _subscriptions.add(
-      _systemCallManager.onAudioActivated.listen(_handleAudioActivated),
+      _systemCallManager.onAudioActivated.listen(
+        (callSessionId) => logCallDiagnostic(
+          'incoming_call.audio_activated callSessionId=$callSessionId',
+        ),
+      ),
     );
   }
 
@@ -89,10 +96,11 @@ final class IncomingCallCoordinator {
       logCallDiagnostic(
         'incoming_call.answer_succeeded_sent callSessionId=$callSessionId',
       );
-      await _waitForAudioActivation(callSessionId);
-      logCallDiagnostic(
-        'incoming_call.audio_activation_confirmed callSessionId=$callSessionId',
-      );
+      // CallKit's audio callback is forwarded to flutter_webrtc natively, but
+      // it is not a safe prerequisite for signaling. On a cold/background
+      // launch the callback can arrive late or not reach the Dart isolate;
+      // waiting here would end every call after the timeout before a WebSocket
+      // connection is even attempted.
       await _callConnection.connect(
         callSessionId,
         accessToken: session.accessToken,
@@ -129,6 +137,9 @@ final class IncomingCallCoordinator {
       _activeCallSessionId = null;
     }
     await _callConnection.hangup();
+    if (!_callFinishedController.isClosed) {
+      _callFinishedController.add(callSessionId);
+    }
   }
 
   Future<void> dispose() async {
@@ -136,49 +147,10 @@ final class IncomingCallCoordinator {
       _subscriptions.map((subscription) => subscription.cancel()),
     );
     _subscriptions.clear();
-    _activatedAudioCallSessionIds.clear();
-    _audioActivationWaiters.clear();
     _started = false;
     _activeCallSessionId = null;
     await _callConnection.hangup();
-  }
-
-  void _handleAudioActivated(String callSessionId) {
-    final waiters = _audioActivationWaiters.remove(callSessionId);
-    if (waiters == null || waiters.isEmpty) {
-      _activatedAudioCallSessionIds.add(callSessionId);
-      return;
-    }
-    for (final waiter in waiters) {
-      if (!waiter.isCompleted) {
-        waiter.complete();
-      }
-    }
-  }
-
-  Future<void> _waitForAudioActivation(String callSessionId) async {
-    if (await _systemCallManager.isAudioActivated(callSessionId)) {
-      return;
-    }
-    if (_activatedAudioCallSessionIds.remove(callSessionId)) {
-      return Future<void>.value();
-    }
-
-    final waiter = Completer<void>();
-    _audioActivationWaiters
-        .putIfAbsent(callSessionId, () => <Completer<void>>[])
-        .add(waiter);
-    // A cold VoIP launch on a locked device can leave CallKit noticeably
-    // slower to activate the audio session than a warm foreground answer.
-    // Measured activation has landed as late as ~16s after answering in
-    // that exact condition (device logs), so 15s was still cutting it off
-    // a second early. 25s gives real headroom above the observed worst case.
-    await waiter.future.timeout(
-      const Duration(seconds: 25),
-      onTimeout: () => throw StateError(
-        'CallKit audio session was not activated for $callSessionId.',
-      ),
-    );
+    await _callFinishedController.close();
   }
 
   Future<void> _ignoreStreamError(Future<void> operation) async {

@@ -23,6 +23,7 @@ final class OnCueApp extends StatefulWidget {
     this.authorizationClient,
     this.incomingCallCoordinator,
     this.immediateCallTestService,
+    this.callFinishedEvents,
   });
 
   final Future<List<Reservation>> Function()? loadReservations;
@@ -33,6 +34,7 @@ final class OnCueApp extends StatefulWidget {
   final OAuthAuthorizationClient? authorizationClient;
   final IncomingCallCoordinator? incomingCallCoordinator;
   final ImmediateCallTestService? immediateCallTestService;
+  final Stream<String>? callFinishedEvents;
 
   @override
   State<OnCueApp> createState() => _OnCueAppState();
@@ -64,11 +66,7 @@ final class _OnCueAppState extends State<OnCueApp> {
           )
         : _buildHome(widget.accessToken);
 
-    return MaterialApp(
-      title: 'OnCue',
-      theme: buildOnCueTheme(),
-      home: home,
-    );
+    return MaterialApp(title: 'OnCue', theme: buildOnCueTheme(), home: home);
   }
 
   OnCueHomePage _buildHome(
@@ -88,6 +86,9 @@ final class _OnCueAppState extends State<OnCueApp> {
       accessToken: sessionAccessToken,
       onLogout: onLogout,
       immediateCallTestService: widget.immediateCallTestService,
+      callFinishedEvents:
+          widget.callFinishedEvents ??
+          widget.incomingCallCoordinator?.onCallFinished,
     );
   }
 }

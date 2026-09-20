@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:oncue_mobile/combination/data/mvp_call_combinations.dart';
@@ -51,6 +53,84 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('예약된 통화가 없습니다.'), findsOneWidget);
+  });
+
+  testWidgets('reloads reservations when the app resumes after a call', (
+    tester,
+  ) async {
+    var loadCount = 0;
+    await tester.pumpWidget(
+      MaterialApp(
+        home: ReservationListPage(
+          loadReservations: () async {
+            loadCount++;
+            return [
+              loadCount == 1
+                  ? _reservation()
+                  : _reservation(
+                      callSessionId: '25',
+                      callStatus: 'IN_CALL',
+                      callOutcome: 'SUCCEEDED',
+                      endedAt: DateTime.parse('2026-09-08T12:05:00Z'),
+                    ),
+            ];
+          },
+          combinations: MvpCallCombinations.all,
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.paused);
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
+    await tester.pumpAndSettle();
+
+    expect(loadCount, 2);
+    await tester.tap(find.byKey(const ValueKey('reservation-1001')));
+    await tester.pumpAndSettle();
+
+    expect(find.text('완료'), findsNWidgets(2));
+  });
+
+  testWidgets('reloads reservations when a system call finishes', (
+    tester,
+  ) async {
+    final callFinishedEvents = StreamController<String>.broadcast();
+    var loadCount = 0;
+    await tester.pumpWidget(
+      MaterialApp(
+        home: ReservationListPage(
+          loadReservations: () async {
+            loadCount++;
+            return [
+              loadCount == 1
+                  ? _reservation()
+                  : _reservation(
+                      callSessionId: '25',
+                      callStatus: 'IN_CALL',
+                      callOutcome: 'SUCCEEDED',
+                      endedAt: DateTime.parse('2026-09-08T12:05:00Z'),
+                    ),
+            ];
+          },
+          combinations: MvpCallCombinations.all,
+          callFinishedEvents: callFinishedEvents.stream,
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    callFinishedEvents.add('321');
+    await tester.pump(const Duration(milliseconds: 300));
+    await tester.pumpAndSettle();
+
+    expect(loadCount, 2);
+    await tester.tap(find.byKey(const ValueKey('reservation-1001')));
+    await tester.pumpAndSettle();
+
+    expect(find.text('완료'), findsNWidgets(2));
+
+    await callFinishedEvents.close();
   });
 
   testWidgets('opens the reservation edit form from reservation details', (
@@ -176,7 +256,12 @@ final class _FakeReservationClient implements ReservationClient {
   }) async => _reservation();
 }
 
-Reservation _reservation() {
+Reservation _reservation({
+  String? callSessionId,
+  String? callStatus,
+  String? callOutcome,
+  DateTime? endedAt,
+}) {
   return Reservation(
     reservationId: '1001',
     reservationStatus: 'SCHEDULED',
@@ -189,9 +274,9 @@ Reservation _reservation() {
     scheduledAtUtc: DateTime.parse('2026-09-08T12:00:00Z'),
     editableUntil: DateTime.now().add(const Duration(hours: 1)),
     createdAt: DateTime.parse('2026-09-08T10:00:00Z'),
-    callSessionId: null,
-    callStatus: null,
-    callOutcome: null,
-    endedAt: null,
+    callSessionId: callSessionId,
+    callStatus: callStatus,
+    callOutcome: callOutcome,
+    endedAt: endedAt,
   );
 }

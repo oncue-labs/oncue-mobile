@@ -17,6 +17,7 @@ final class OnCueHomePage extends StatefulWidget {
     this.accessToken,
     this.onLogout,
     this.immediateCallTestService,
+    this.callFinishedEvents,
   });
 
   final Future<List<Reservation>> Function()? loadReservations;
@@ -25,6 +26,7 @@ final class OnCueHomePage extends StatefulWidget {
   final String? accessToken;
   final Future<void> Function()? onLogout;
   final ImmediateCallTestService? immediateCallTestService;
+  final Stream<String>? callFinishedEvents;
 
   @override
   State<OnCueHomePage> createState() => _OnCueHomePageState();
@@ -50,13 +52,13 @@ final class _OnCueHomePageState extends State<OnCueHomePage> {
               ),
               ReservationListPage(
                 key: ValueKey('reservation-list-$_reservationRefreshToken'),
-                loadReservations:
-                    widget.loadReservations ?? _emptyReservations,
+                loadReservations: widget.loadReservations ?? _emptyReservations,
                 combinations: MvpCallCombinations.all,
                 reservationService: widget.reservationService,
                 accessToken: widget.accessToken,
                 onLogout: widget.onLogout,
                 immediateCallTestService: widget.immediateCallTestService,
+                callFinishedEvents: widget.callFinishedEvents,
               ),
             ],
           ),

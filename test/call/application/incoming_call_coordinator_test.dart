@@ -10,50 +10,52 @@ import 'package:oncue_mobile/common/auth/auth_session.dart';
 import 'package:oncue_mobile/common/call/system_call_manager.dart';
 
 void main() {
-  test('activates CallKit audio before starting the answer connection', () async {
-    final systemCallManager = _FakeSystemCallManager();
-    final events = <String>[];
-    final connection = _FakeCallConnection(
-      onConnect: () => events.add('connect'),
-    );
-    systemCallManager.onAnswerSucceeded = () => events.add('answer-succeeded');
-    final coordinator = IncomingCallCoordinator(
-      systemCallManager: systemCallManager,
-      authSessionProvider: _FakeAuthSessionProvider(_session()),
-      callSessionApi: _FakeCallSessionApi(),
-      callConnection: connection,
-    );
+  test(
+    'activates CallKit audio before starting the answer connection',
+    () async {
+      final systemCallManager = _FakeSystemCallManager();
+      final events = <String>[];
+      final connection = _FakeCallConnection(
+        onConnect: () => events.add('connect'),
+      );
+      systemCallManager.onAnswerSucceeded = () =>
+          events.add('answer-succeeded');
+      final coordinator = IncomingCallCoordinator(
+        systemCallManager: systemCallManager,
+        authSessionProvider: _FakeAuthSessionProvider(_session()),
+        callSessionApi: _FakeCallSessionApi(),
+        callConnection: connection,
+      );
 
-    await coordinator.handleAnswered('321');
+      await coordinator.handleAnswered('321');
 
-    expect(connection.connectedCallSessionId, '321');
-    expect(systemCallManager.succeededCallSessionIds, ['321']);
-    expect(systemCallManager.failedCallSessionIds, isEmpty);
-    expect(events, ['answer-succeeded', 'connect']);
-  });
+      expect(connection.connectedCallSessionId, '321');
+      expect(systemCallManager.succeededCallSessionIds, ['321']);
+      expect(systemCallManager.failedCallSessionIds, isEmpty);
+      expect(events, ['answer-succeeded', 'connect']);
+    },
+  );
 
-  test('waits for CallKit audio activation before connecting media', () async {
-    final systemCallManager = _FakeSystemCallManager(
-      emitAudioActivationOnAnswer: false,
-    );
-    final connection = _FakeCallConnection();
-    final coordinator = IncomingCallCoordinator(
-      systemCallManager: systemCallManager,
-      authSessionProvider: _FakeAuthSessionProvider(_session()),
-      callSessionApi: _FakeCallSessionApi(),
-      callConnection: connection,
-    );
+  test(
+    'starts media connection without blocking on CallKit audio activation',
+    () async {
+      final systemCallManager = _FakeSystemCallManager(
+        emitAudioActivationOnAnswer: false,
+      );
+      final connection = _FakeCallConnection();
+      final coordinator = IncomingCallCoordinator(
+        systemCallManager: systemCallManager,
+        authSessionProvider: _FakeAuthSessionProvider(_session()),
+        callSessionApi: _FakeCallSessionApi(),
+        callConnection: connection,
+      );
 
-    final answer = coordinator.handleAnswered('321');
-    await Future<void>.delayed(Duration.zero);
+      final answer = coordinator.handleAnswered('321');
+      await answer;
 
-    expect(connection.connectedCallSessionId, isNull);
-
-    systemCallManager.emitAudioActivated('321');
-    await answer;
-
-    expect(connection.connectedCallSessionId, '321');
-  });
+      expect(connection.connectedCallSessionId, '321');
+    },
+  );
 
   test(
     'connects when CallKit audio activation happened before answer handling',
@@ -77,27 +79,24 @@ void main() {
     timeout: const Timeout(Duration(seconds: 2)),
   );
 
-  test(
-    'ends the system call when the answer connection fails',
-    () async {
-      final systemCallManager = _FakeSystemCallManager();
-      final connection = _FakeCallConnection(
-        connectError: StateError('no route'),
-      );
-      final coordinator = IncomingCallCoordinator(
-        systemCallManager: systemCallManager,
-        authSessionProvider: _FakeAuthSessionProvider(_session()),
-        callSessionApi: _FakeCallSessionApi(),
-        callConnection: connection,
-      );
+  test('ends the system call when the answer connection fails', () async {
+    final systemCallManager = _FakeSystemCallManager();
+    final connection = _FakeCallConnection(
+      connectError: StateError('no route'),
+    );
+    final coordinator = IncomingCallCoordinator(
+      systemCallManager: systemCallManager,
+      authSessionProvider: _FakeAuthSessionProvider(_session()),
+      callSessionApi: _FakeCallSessionApi(),
+      callConnection: connection,
+    );
 
-      await coordinator.handleAnswered('321');
+    await coordinator.handleAnswered('321');
 
-      expect(systemCallManager.succeededCallSessionIds, ['321']);
-      expect(systemCallManager.failedCallSessionIds, isEmpty);
-      expect(systemCallManager.endedCallSessionIds, ['321']);
-    },
-  );
+    expect(systemCallManager.succeededCallSessionIds, ['321']);
+    expect(systemCallManager.failedCallSessionIds, isEmpty);
+    expect(systemCallManager.endedCallSessionIds, ['321']);
+  });
 
   test(
     'rejects the call with the current access token and closes media',
@@ -120,29 +119,26 @@ void main() {
     },
   );
 
-  test(
-    'connects using a session that only finishes loading after the '
-    'call is answered (VoIP cold-launch race)',
-    () async {
-      final systemCallManager = _FakeSystemCallManager();
-      final connection = _FakeCallConnection();
-      final coordinator = IncomingCallCoordinator(
-        systemCallManager: systemCallManager,
-        authSessionProvider: _FakeAuthSessionProvider(
-          null,
-          loadedSession: _session(),
-        ),
-        callSessionApi: _FakeCallSessionApi(),
-        callConnection: connection,
-      );
+  test('connects using a session that only finishes loading after the '
+      'call is answered (VoIP cold-launch race)', () async {
+    final systemCallManager = _FakeSystemCallManager();
+    final connection = _FakeCallConnection();
+    final coordinator = IncomingCallCoordinator(
+      systemCallManager: systemCallManager,
+      authSessionProvider: _FakeAuthSessionProvider(
+        null,
+        loadedSession: _session(),
+      ),
+      callSessionApi: _FakeCallSessionApi(),
+      callConnection: connection,
+    );
 
-      await coordinator.handleAnswered('321');
+    await coordinator.handleAnswered('321');
 
-      expect(connection.connectedCallSessionId, '321');
-      expect(systemCallManager.failedCallSessionIds, isEmpty);
-      expect(systemCallManager.endedCallSessionIds, isEmpty);
-    },
-  );
+    expect(connection.connectedCallSessionId, '321');
+    expect(systemCallManager.failedCallSessionIds, isEmpty);
+    expect(systemCallManager.endedCallSessionIds, isEmpty);
+  });
 
   test('ends the active media connection when CallKit ends the call', () async {
     final connection = _FakeCallConnection();
@@ -157,6 +153,21 @@ void main() {
     await coordinator.handleEnded('321');
 
     expect(connection.hangupCount, 1);
+  });
+
+  test('emits a call-finished event when CallKit ends the call', () async {
+    final coordinator = IncomingCallCoordinator(
+      systemCallManager: _FakeSystemCallManager(),
+      authSessionProvider: _FakeAuthSessionProvider(_session()),
+      callSessionApi: _FakeCallSessionApi(),
+      callConnection: _FakeCallConnection(),
+    );
+
+    final finishedCallSessionId = coordinator.onCallFinished.first;
+    await coordinator.handleEnded('321');
+
+    expect(await finishedCallSessionId, '321');
+    await coordinator.dispose();
   });
 }
 

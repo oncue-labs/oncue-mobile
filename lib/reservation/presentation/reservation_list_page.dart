@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:oncue_mobile/combination/model/call_combination_card.dart';
 import 'package:oncue_mobile/call/application/immediate_call_test_service.dart';
@@ -25,6 +27,7 @@ final class ReservationListPage extends StatefulWidget {
     this.accessToken,
     this.onLogout,
     this.immediateCallTestService,
+    this.callFinishedEvents,
   });
 
   final Future<List<Reservation>> Function() loadReservations;
@@ -33,18 +36,52 @@ final class ReservationListPage extends StatefulWidget {
   final String? accessToken;
   final Future<void> Function()? onLogout;
   final ImmediateCallTestService? immediateCallTestService;
+  final Stream<String>? callFinishedEvents;
 
   @override
   State<ReservationListPage> createState() => _ReservationListPageState();
 }
 
-final class _ReservationListPageState extends State<ReservationListPage> {
+final class _ReservationListPageState extends State<ReservationListPage>
+    with WidgetsBindingObserver {
   late Future<List<Reservation>> _reservationsFuture;
+  StreamSubscription<String>? _callFinishedSubscription;
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _reservationsFuture = widget.loadReservations();
+    _callFinishedSubscription = widget.callFinishedEvents?.listen((_) {
+      unawaited(_reloadReservationsAfterCall());
+    });
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state != AppLifecycleState.resumed || !mounted) {
+      return;
+    }
+    setState(() {
+      _reservationsFuture = widget.loadReservations();
+    });
+  }
+
+  @override
+  void dispose() {
+    unawaited(_callFinishedSubscription?.cancel());
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  Future<void> _reloadReservationsAfterCall() async {
+    await Future<void>.delayed(const Duration(milliseconds: 300));
+    if (!mounted) {
+      return;
+    }
+    setState(() {
+      _reservationsFuture = widget.loadReservations();
+    });
   }
 
   @override
@@ -130,6 +167,13 @@ final class _ReservationListPageState extends State<ReservationListPage> {
         builder: (_) => ReservationDetailPage(
           reservation: reservation,
           combination: combination,
+          loadReservation: widget.reservationService == null
+              ? null
+              : () => widget.reservationService!.get(
+                  reservation.reservationId,
+                  accessToken: widget.accessToken,
+                ),
+          callFinishedEvents: widget.callFinishedEvents,
           onStartTestCall: widget.immediateCallTestService == null
               ? null
               : () => _openImmediateTestCall(context, reservation, combination),
@@ -301,7 +345,10 @@ final class _ReservationTile extends StatelessWidget {
                   ],
                 ),
               ),
-              Icon(Icons.chevron_right, color: theme.colorScheme.onSurfaceVariant),
+              Icon(
+                Icons.chevron_right,
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
             ],
           ),
         ),
