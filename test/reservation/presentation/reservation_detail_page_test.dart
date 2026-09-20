@@ -216,6 +216,26 @@ void main() {
     expect(find.text('완료'), findsNWidgets(2));
   });
 
+  testWidgets('uses call outcome to show completion without endedAt', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        home: ReservationDetailPage(
+          reservation: _reservation(
+            editableUntil: DateTime(2026, 9, 8, 20),
+            callStatus: 'IN_CALL',
+            callOutcome: 'SUCCEEDED',
+          ),
+          combination: MvpCallCombinations.all.first,
+          now: () => DateTime(2026, 9, 8, 21),
+        ),
+      ),
+    );
+
+    expect(find.text('완료'), findsNWidgets(2));
+  });
+
   testWidgets('reloads the reservation when a system call finishes', (
     tester,
   ) async {

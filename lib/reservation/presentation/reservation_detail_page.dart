@@ -252,7 +252,7 @@ final class _ReservationDetailPageState extends State<ReservationDetailPage>
   }
 
   String get _callStatusLabel {
-    if (reservation.endedAt != null && reservation.callOutcome != null) {
+    if (reservation.callOutcome != null) {
       return '완료';
     }
     return switch (reservation.callStatus) {
