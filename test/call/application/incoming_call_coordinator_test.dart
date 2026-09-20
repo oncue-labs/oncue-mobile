@@ -37,11 +37,13 @@ void main() {
   );
 
   test(
-    'starts media connection without blocking on CallKit audio activation',
+    'waits for CallKit audio activation before starting the answer connection',
     () async {
       final systemCallManager = _FakeSystemCallManager(
         emitAudioActivationOnAnswer: false,
       );
+      final answerSucceeded = Completer<void>();
+      systemCallManager.onAnswerSucceeded = answerSucceeded.complete;
       final connection = _FakeCallConnection();
       final coordinator = IncomingCallCoordinator(
         systemCallManager: systemCallManager,
@@ -51,6 +53,12 @@ void main() {
       );
 
       final answer = coordinator.handleAnswered('321');
+      await answerSucceeded.future;
+      await Future<void>.delayed(Duration.zero);
+
+      expect(connection.connectedCallSessionId, isNull);
+
+      systemCallManager.emitAudioActivated('321');
       await answer;
 
       expect(connection.connectedCallSessionId, '321');
@@ -289,7 +297,7 @@ final class _FakeSystemCallManager implements SystemCallManager {
     succeededCallSessionIds.add(callSessionId);
     onAnswerSucceeded?.call();
     if (emitAudioActivationOnAnswer) {
-      _audioActivated.add(callSessionId);
+      emitAudioActivated(callSessionId);
     }
   }
 
