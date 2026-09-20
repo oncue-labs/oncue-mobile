@@ -15,6 +15,7 @@ final class MethodChannelSystemCallManager implements SystemCallManager {
   static const _endCallMethod = 'endCall';
   static const _answerSucceededMethod = 'answerSucceeded';
   static const _answerFailedMethod = 'answerFailed';
+  static const _isAudioActivatedMethod = 'isAudioActivated';
   static const _answeredEvent = 'onAnswered';
   static const _rejectedEvent = 'onRejected';
   static const _endedEvent = 'onEnded';
@@ -63,6 +64,14 @@ final class MethodChannelSystemCallManager implements SystemCallManager {
   @override
   Future<void> answerFailed(String callSessionId) {
     return _invokeCallCommand(_answerFailedMethod, callSessionId);
+  }
+
+  @override
+  Future<bool> isAudioActivated(String callSessionId) async {
+    final result = await _channel.invokeMethod<bool>(_isAudioActivatedMethod, {
+      'callSessionId': callSessionId,
+    });
+    return result ?? false;
   }
 
   Future<void> _invokeCallCommand(String method, String callSessionId) {

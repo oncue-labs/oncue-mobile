@@ -13,6 +13,7 @@ final class OnCueCallKitBridge: NSObject, CXProviderDelegate {
   private var callSessionIdByUUID: [UUID: String] = [:]
   private var uuidByCallSessionId: [String: UUID] = [:]
   private var answeredCallSessionIds: Set<String> = []
+  private var audioActivatedCallSessionIds: Set<String> = []
   private var appEndedCallSessionIds: Set<String> = []
 
   var eventHandler: ((String, String) -> Void)?
@@ -94,11 +95,17 @@ final class OnCueCallKitBridge: NSObject, CXProviderDelegate {
 
   func answerFailed(callSessionId: String) {
     answeredCallSessionIds.remove(callSessionId)
+    audioActivatedCallSessionIds.remove(callSessionId)
     removeCall(callSessionId: callSessionId)
+  }
+
+  func isAudioActivated(callSessionId: String) -> Bool {
+    audioActivatedCallSessionIds.contains(callSessionId)
   }
 
   func providerDidReset(_ provider: CXProvider) {
     answeredCallSessionIds.removeAll()
+    audioActivatedCallSessionIds.removeAll()
     appEndedCallSessionIds.removeAll()
     callSessionIdByUUID.removeAll()
     uuidByCallSessionId.removeAll()
@@ -134,6 +141,10 @@ final class OnCueCallKitBridge: NSObject, CXProviderDelegate {
   }
 
   func provider(_ provider: CXProvider, didActivate audioSession: AVAudioSession) {
+    if let callSessionId = answeredCallSessionIds.first {
+      audioActivatedCallSessionIds.insert(callSessionId)
+    }
+
     do {
       try audioSession.setCategory(
         .playAndRecord,
@@ -163,6 +174,7 @@ final class OnCueCallKitBridge: NSObject, CXProviderDelegate {
     }
     callSessionIdByUUID.removeValue(forKey: callUUID)
     answeredCallSessionIds.remove(callSessionId)
+    audioActivatedCallSessionIds.remove(callSessionId)
     appEndedCallSessionIds.remove(callSessionId)
   }
 }

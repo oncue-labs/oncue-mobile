@@ -116,6 +116,9 @@ final class _RecordingSystemCallManager implements SystemCallManager {
   Stream<String> get onAudioActivated => _audioActivated.stream;
 
   @override
+  Future<bool> isAudioActivated(String callSessionId) async => false;
+
+  @override
   Future<void> presentIncomingCall(IncomingCallDisplayInfo call) async {
     if (failNextPresentation && !_shouldFailPresentation) {
       _shouldFailPresentation = true;

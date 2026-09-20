@@ -60,11 +60,22 @@ final class IncomingCallCoordinator {
 
   Future<void> handleAnswered(String callSessionId) async {
     start();
-    final session = _authSessionProvider.currentSession;
+    logCallDiagnostic('incoming_call.answered callSessionId=$callSessionId');
+    // A VoIP push can cold-launch the app straight into call handling,
+    // before the UI's own session restore has finished. Ensure the session
+    // is loaded here instead of trusting currentSession, or a real login
+    // gets treated as logged-out and the call is dropped immediately.
+    final session = await _authSessionProvider.ensureSessionLoaded();
     if (session == null) {
+      logCallDiagnostic(
+        'incoming_call.no_session callSessionId=$callSessionId',
+      );
       await _systemCallManager.answerFailed(callSessionId);
       return;
     }
+    logCallDiagnostic(
+      'incoming_call.session_loaded callSessionId=$callSessionId',
+    );
 
     if (_activeCallSessionId != null && _activeCallSessionId != callSessionId) {
       await _callConnection.hangup();
@@ -75,12 +86,21 @@ final class IncomingCallCoordinator {
       // CallKit activates iOS's audio session only after the answer action is
       // fulfilled. WebRTC must start after that activation, not before it.
       await _systemCallManager.answerSucceeded(callSessionId);
+      logCallDiagnostic(
+        'incoming_call.answer_succeeded_sent callSessionId=$callSessionId',
+      );
       await _waitForAudioActivation(callSessionId);
+      logCallDiagnostic(
+        'incoming_call.audio_activation_confirmed callSessionId=$callSessionId',
+      );
       await _callConnection.connect(
         callSessionId,
         accessToken: session.accessToken,
       );
-    } catch (_) {
+    } catch (error) {
+      logCallDiagnostic(
+        'incoming_call.failed callSessionId=$callSessionId error=$error',
+      );
       _activeCallSessionId = null;
       await _callConnection.hangup();
       await _systemCallManager.endCall(callSessionId);
@@ -136,7 +156,10 @@ final class IncomingCallCoordinator {
     }
   }
 
-  Future<void> _waitForAudioActivation(String callSessionId) {
+  Future<void> _waitForAudioActivation(String callSessionId) async {
+    if (await _systemCallManager.isAudioActivated(callSessionId)) {
+      return;
+    }
     if (_activatedAudioCallSessionIds.remove(callSessionId)) {
       return Future<void>.value();
     }
@@ -145,8 +168,13 @@ final class IncomingCallCoordinator {
     _audioActivationWaiters
         .putIfAbsent(callSessionId, () => <Completer<void>>[])
         .add(waiter);
-    return waiter.future.timeout(
-      const Duration(seconds: 5),
+    // A cold VoIP launch on a locked device can leave CallKit noticeably
+    // slower to activate the audio session than a warm foreground answer.
+    // Measured activation has landed as late as ~16s after answering in
+    // that exact condition (device logs), so 15s was still cutting it off
+    // a second early. 25s gives real headroom above the observed worst case.
+    await waiter.future.timeout(
+      const Duration(seconds: 25),
       onTimeout: () => throw StateError(
         'CallKit audio session was not activated for $callSessionId.',
       ),

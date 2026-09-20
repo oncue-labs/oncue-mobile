@@ -172,6 +172,8 @@ import UIKit
     case "answerFailed":
       callKitBridge.answerFailed(callSessionId: callSessionId)
       result(nil)
+    case "isAudioActivated":
+      result(callKitBridge.isAudioActivated(callSessionId: callSessionId))
     default:
       result(FlutterMethodNotImplemented)
     }

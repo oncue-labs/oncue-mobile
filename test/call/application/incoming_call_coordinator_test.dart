@@ -56,6 +56,28 @@ void main() {
   });
 
   test(
+    'connects when CallKit audio activation happened before answer handling',
+    () async {
+      final systemCallManager = _FakeSystemCallManager(
+        emitAudioActivationOnAnswer: false,
+      );
+      systemCallManager.emitAudioActivated('321');
+      final connection = _FakeCallConnection();
+      final coordinator = IncomingCallCoordinator(
+        systemCallManager: systemCallManager,
+        authSessionProvider: _FakeAuthSessionProvider(_session()),
+        callSessionApi: _FakeCallSessionApi(),
+        callConnection: connection,
+      );
+
+      await coordinator.handleAnswered('321');
+
+      expect(connection.connectedCallSessionId, '321');
+    },
+    timeout: const Timeout(Duration(seconds: 2)),
+  );
+
+  test(
     'ends the system call when the answer connection fails',
     () async {
       final systemCallManager = _FakeSystemCallManager();
@@ -98,6 +120,30 @@ void main() {
     },
   );
 
+  test(
+    'connects using a session that only finishes loading after the '
+    'call is answered (VoIP cold-launch race)',
+    () async {
+      final systemCallManager = _FakeSystemCallManager();
+      final connection = _FakeCallConnection();
+      final coordinator = IncomingCallCoordinator(
+        systemCallManager: systemCallManager,
+        authSessionProvider: _FakeAuthSessionProvider(
+          null,
+          loadedSession: _session(),
+        ),
+        callSessionApi: _FakeCallSessionApi(),
+        callConnection: connection,
+      );
+
+      await coordinator.handleAnswered('321');
+
+      expect(connection.connectedCallSessionId, '321');
+      expect(systemCallManager.failedCallSessionIds, isEmpty);
+      expect(systemCallManager.endedCallSessionIds, isEmpty);
+    },
+  );
+
   test('ends the active media connection when CallKit ends the call', () async {
     final connection = _FakeCallConnection();
     final coordinator = IncomingCallCoordinator(
@@ -123,10 +169,17 @@ AuthSession _session() {
 }
 
 final class _FakeAuthSessionProvider implements AuthSessionProvider {
-  _FakeAuthSessionProvider(this.currentSession);
+  _FakeAuthSessionProvider(this.currentSession, {AuthSession? loadedSession})
+    : _loadedSession = loadedSession ?? currentSession;
 
   @override
   final AuthSession? currentSession;
+  final AuthSession? _loadedSession;
+
+  @override
+  Future<AuthSession?> ensureSessionLoaded() async {
+    return currentSession ?? _loadedSession;
+  }
 }
 
 final class _FakeCallConnection implements CallConnection {
@@ -189,6 +242,7 @@ final class _FakeSystemCallManager implements SystemCallManager {
   final _rejected = StreamController<String>.broadcast();
   final _ended = StreamController<String>.broadcast();
   final _audioActivated = StreamController<String>.broadcast();
+  final _activatedAudioCallSessionIds = <String>{};
   final succeededCallSessionIds = <String>[];
   final failedCallSessionIds = <String>[];
   final endedCallSessionIds = <String>[];
@@ -205,6 +259,11 @@ final class _FakeSystemCallManager implements SystemCallManager {
 
   @override
   Stream<String> get onAudioActivated => _audioActivated.stream;
+
+  @override
+  Future<bool> isAudioActivated(String callSessionId) async {
+    return _activatedAudioCallSessionIds.contains(callSessionId);
+  }
 
   @override
   Future<void> presentIncomingCall(IncomingCallDisplayInfo call) async {}
@@ -229,6 +288,7 @@ final class _FakeSystemCallManager implements SystemCallManager {
   }
 
   void emitAudioActivated(String callSessionId) {
+    _activatedAudioCallSessionIds.add(callSessionId);
     _audioActivated.add(callSessionId);
   }
 

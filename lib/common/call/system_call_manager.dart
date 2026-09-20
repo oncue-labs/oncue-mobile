@@ -33,6 +33,12 @@ abstract interface class SystemCallManager {
   /// CallKit has activated the iOS audio session for this answered call.
   Stream<String> get onAudioActivated;
 
+  /// Returns whether CallKit already activated audio for this call.
+  ///
+  /// This closes the race where native CallKit emits `onAudioActivated`
+  /// before Flutter starts waiting for the event.
+  Future<bool> isAudioActivated(String callSessionId);
+
   Future<void> presentIncomingCall(IncomingCallDisplayInfo call);
 
   Future<void> endCall(String callSessionId);
