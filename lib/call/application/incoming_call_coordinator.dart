@@ -10,8 +10,6 @@ import 'package:oncue_mobile/common/call/system_call_manager.dart';
 /// CallKit owns the visible incoming-call UI. This coordinator owns what the
 /// app must do after the user answers, rejects, or ends that system call.
 final class IncomingCallCoordinator {
-  static const _audioActivationTimeout = Duration(seconds: 5);
-
   IncomingCallCoordinator({
     required SystemCallManager systemCallManager,
     required AuthSessionProvider authSessionProvider,
@@ -92,13 +90,13 @@ final class IncomingCallCoordinator {
     _activeCallSessionId = callSessionId;
 
     try {
-      // CallKit activates iOS's audio session only after the answer action is
-      // fulfilled. WebRTC must start after that activation, not before it.
+      // CallKit owns iOS audio activation, while this coordinator owns the
+      // authenticated signaling connection. A delayed native activation event
+      // must not prevent a background call from reaching the voice server.
       await _systemCallManager.answerSucceeded(callSessionId);
       logCallDiagnostic(
         'incoming_call.answer_succeeded_sent callSessionId=$callSessionId',
       );
-      await _waitForAudioActivation(callSessionId);
       await _callConnection.connect(
         callSessionId,
         accessToken: session.accessToken,
@@ -110,38 +108,6 @@ final class IncomingCallCoordinator {
       _activeCallSessionId = null;
       await _callConnection.hangup();
       await _systemCallManager.endCall(callSessionId);
-    }
-  }
-
-  Future<void> _waitForAudioActivation(String callSessionId) async {
-    final activationCompleter = Completer<void>();
-    final activationSubscription = _systemCallManager.onAudioActivated
-        .where(
-          (activatedCallSessionId) => activatedCallSessionId == callSessionId,
-        )
-        .listen((_) {
-          if (!activationCompleter.isCompleted) {
-            activationCompleter.complete();
-          }
-        });
-
-    try {
-      if (await _systemCallManager.isAudioActivated(callSessionId)) {
-        return;
-      }
-      logCallDiagnostic(
-        'incoming_call.waiting_audio_activation callSessionId=$callSessionId',
-      );
-      await activationCompleter.future.timeout(_audioActivationTimeout);
-      logCallDiagnostic(
-        'incoming_call.audio_activation_ready callSessionId=$callSessionId',
-      );
-    } on TimeoutException {
-      throw StateError(
-        'CallKit audio session was not activated before the connection started.',
-      );
-    } finally {
-      await activationSubscription.cancel();
     }
   }
 
