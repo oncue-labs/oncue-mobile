@@ -11,7 +11,7 @@ final class XOAuthConfiguration {
     required this.redirectUri,
     this.authorizationEndpoint = 'https://x.com/i/oauth2/authorize',
     this.tokenEndpoint = 'https://api.x.com/2/oauth2/token',
-    this.scopes = const ['users.read'],
+    this.scopes = const ['users.read', 'offline.access'],
   });
 
   final String clientId;

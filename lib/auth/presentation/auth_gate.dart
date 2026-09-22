@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:oncue_mobile/auth/application/auth_service.dart';
 import 'package:oncue_mobile/auth/data/oauth_authorization_client.dart';
@@ -16,10 +18,8 @@ final class AuthGate extends StatefulWidget {
 
   final AuthService authService;
   final OAuthAuthorizationClient authorizationClient;
-  final Widget Function(
-    AuthSession session,
-    Future<void> Function() onLogout,
-  ) homeBuilder;
+  final Widget Function(AuthSession session, Future<void> Function() onLogout)
+  homeBuilder;
 
   @override
   State<AuthGate> createState() => _AuthGateState();
@@ -29,11 +29,32 @@ final class _AuthGateState extends State<AuthGate> {
   AuthSession? _session;
   Object? _loadError;
   bool _isLoading = true;
+  late final StreamSubscription<AuthSession?> _sessionSubscription;
 
   @override
   void initState() {
     super.initState();
+    _sessionSubscription = widget.authService.sessionChanges.listen(
+      _handleSessionChange,
+    );
     _restoreSession();
+  }
+
+  @override
+  void dispose() {
+    unawaited(_sessionSubscription.cancel());
+    super.dispose();
+  }
+
+  void _handleSessionChange(AuthSession? session) {
+    if (!mounted) {
+      return;
+    }
+    setState(() {
+      _session = session;
+      _loadError = null;
+      _isLoading = false;
+    });
   }
 
   @override

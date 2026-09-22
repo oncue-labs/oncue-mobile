@@ -49,6 +49,12 @@ final class _FakeAuthApiClient implements AuthClient {
   Future<AuthSession> login(AuthLoginRequest request) async {
     return session;
   }
+
+  @override
+  Future<AuthSession> refresh(String refreshToken) async => session;
+
+  @override
+  Future<void> revoke(String refreshToken) async {}
 }
 
 final class _FakeAuthSessionStore implements AuthSessionStore {

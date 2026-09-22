@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:developer' as developer;
 
 import 'package:oncue_mobile/auth/application/auth_service.dart';
 import 'package:oncue_mobile/call/application/call_connection_service.dart';
@@ -156,4 +157,8 @@ final class IncomingCallCoordinator {
       // Native event streams must not receive an unhandled async exception.
     }
   }
+}
+
+void logCallDiagnostic(String message) {
+  developer.log(message, name: 'oncue.call');
 }

@@ -60,6 +60,10 @@ final class SecureAuthSessionStore implements AuthSessionStore {
         'accessToken': session.accessToken,
         'expiresAt': session.expiresAt.toIso8601String(),
         'createdAt': session.createdAt.toIso8601String(),
+        if (session.refreshToken != null) 'refreshToken': session.refreshToken,
+        if (session.refreshTokenExpiresAt != null)
+          'refreshTokenExpiresAt': session.refreshTokenExpiresAt!
+              .toIso8601String(),
       }),
     );
   }

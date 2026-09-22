@@ -7,6 +7,7 @@ import 'package:oncue_mobile/auth/model/auth_login_request.dart';
 import 'package:oncue_mobile/auth/model/auth_provider.dart';
 import 'package:oncue_mobile/auth/presentation/auth_gate.dart';
 import 'package:oncue_mobile/common/auth/auth_session.dart';
+import 'package:oncue_mobile/common/network/api_error.dart';
 
 void main() {
   testWidgets('shows the home after restoring a saved session', (
@@ -100,6 +101,32 @@ void main() {
     expect(store.savedSession, isNull);
     expect(find.text('원하는 순간에 걸려올 전화를 만들어보세요.'), findsOneWidget);
   });
+
+  testWidgets('returns to login when an expired refresh token is rejected', (
+    WidgetTester tester,
+  ) async {
+    final authApiClient = _FakeAuthApiClient(
+      session: _session(),
+      refreshError: const ApiError(statusCode: 401, message: 'expired'),
+    );
+    final authService = AuthService(
+      authApiClient,
+      _FakeAuthSessionStore(savedSession: _session()),
+    );
+
+    await tester.pumpWidget(
+      _testApp(
+        authService: authService,
+        homeBuilder: (session, _) => const Text('authenticated-home'),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await authService.refreshAccessToken('access-token');
+    await tester.pumpAndSettle();
+
+    expect(find.text('원하는 순간에 걸려올 전화를 만들어보세요.'), findsOneWidget);
+  });
 }
 
 Widget _testApp({
@@ -108,7 +135,8 @@ Widget _testApp({
   required Widget Function(
     AuthSession session,
     Future<void> Function() onLogout,
-  ) homeBuilder,
+  )
+  homeBuilder,
 }) {
   return MaterialApp(
     home: AuthGate(
@@ -132,13 +160,16 @@ AuthSession _session() {
     accessToken: 'access-token',
     expiresAt: DateTime.parse('2026-09-15T10:01:00Z'),
     createdAt: DateTime.parse('2026-09-15T10:00:00Z'),
+    refreshToken: 'refresh-token',
+    refreshTokenExpiresAt: DateTime.parse('2026-10-15T10:00:00Z'),
   );
 }
 
 final class _FakeAuthApiClient implements AuthClient {
-  _FakeAuthApiClient({required this.session});
+  _FakeAuthApiClient({required this.session, this.refreshError});
 
   final AuthSession session;
+  final ApiError? refreshError;
   String? provider;
   String? providerAccessToken;
   String? authorizationCode;
@@ -152,6 +183,17 @@ final class _FakeAuthApiClient implements AuthClient {
     codeVerifier = request.codeVerifier;
     return session;
   }
+
+  @override
+  Future<AuthSession> refresh(String refreshToken) async {
+    if (refreshError != null) {
+      throw refreshError!;
+    }
+    return session;
+  }
+
+  @override
+  Future<void> revoke(String refreshToken) async {}
 }
 
 final class _FakeAuthSessionStore implements AuthSessionStore {

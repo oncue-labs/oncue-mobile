@@ -29,7 +29,7 @@ void main() {
       capturedRequest?.redirectUrl,
       'com.oncue.oncuemobile://oauth/x/callback',
     );
-    expect(capturedRequest?.scopes, ['users.read']);
+    expect(capturedRequest?.scopes, ['users.read', 'offline.access']);
     expect(
       capturedRequest?.serviceConfiguration?.authorizationEndpoint,
       'https://x.com/i/oauth2/authorize',

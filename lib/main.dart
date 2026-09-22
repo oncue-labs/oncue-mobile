@@ -49,6 +49,7 @@ Future<void> main() async {
     SecureAuthSessionStore(FlutterAuthSecureStorage()),
     pushDeviceSessionService: pushDeviceService,
   );
+  apiClient.setRefreshAccessTokenHandler(authService.refreshAccessToken);
   final reservationService = ReservationService(
     ReservationApiClient(apiClient),
     const MethodChannelCallPermissionService(),
