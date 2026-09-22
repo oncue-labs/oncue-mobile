@@ -107,6 +107,10 @@ final class IncomingCallCoordinator {
       logCallDiagnostic(
         'incoming_call.answer_succeeded_sent callSessionId=$callSessionId',
       );
+      // CallKit owns the audio session. Starting getUserMedia before
+      // didActivate can produce a connected peer with no microphone frames.
+      // Wait for activation, but do not use a short timeout that would end a
+      // valid incoming call while iOS is resuming the app in the background.
       await _waitForAudioActivation(callSessionId);
       await _callConnection.connect(
         callSessionId,
@@ -126,23 +130,42 @@ final class IncomingCallCoordinator {
 
   Future<void> _waitForAudioActivation(String callSessionId) async {
     if (await _systemCallManager.isAudioActivated(callSessionId)) {
-      logCallDiagnostic(
-        'incoming_call.audio_already_activated callSessionId=$callSessionId',
-      );
       return;
     }
 
-    logCallDiagnostic(
-      'incoming_call.waiting_for_audio_activation callSessionId=$callSessionId',
-    );
-    await _systemCallManager.onAudioActivated
-        .firstWhere(
-          (activatedCallSessionId) => activatedCallSessionId == callSessionId,
-        )
-        .timeout(const Duration(seconds: 5));
-    logCallDiagnostic(
-      'incoming_call.audio_activation_received callSessionId=$callSessionId',
-    );
+    final activationCompleter = Completer<void>();
+    late final StreamSubscription<String> activationSubscription;
+    late final StreamSubscription<String> endSubscription;
+
+    void completeWithError(Object error, StackTrace stackTrace) {
+      if (!activationCompleter.isCompleted) {
+        activationCompleter.completeError(error, stackTrace);
+      }
+    }
+
+    activationSubscription = _systemCallManager.onAudioActivated.listen((
+      activatedCallSessionId,
+    ) {
+      if (activatedCallSessionId == callSessionId &&
+          !activationCompleter.isCompleted) {
+        activationCompleter.complete();
+      }
+    });
+    endSubscription = _systemCallManager.onEnded.listen((endedCallSessionId) {
+      if (endedCallSessionId == callSessionId) {
+        completeWithError(
+          StateError('CallKit ended the call before audio activation.'),
+          StackTrace.current,
+        );
+      }
+    });
+
+    try {
+      await activationCompleter.future;
+    } finally {
+      await activationSubscription.cancel();
+      await endSubscription.cancel();
+    }
   }
 
   Future<void> handleRejected(String callSessionId) async {

@@ -1,5 +1,3 @@
-import 'dart:async';
-
 import 'package:flutter/material.dart';
 import 'package:oncue_mobile/app/oncue_app.dart';
 import 'package:flutter_appauth/flutter_appauth.dart';
@@ -87,6 +85,12 @@ Future<void> main() async {
     ),
   );
 
+  // PushKit can cold-launch the app while the device is locked. Start the
+  // CallKit coordinator and release the native event queue before waiting for
+  // the first Flutter frame; a locked app may not render that frame promptly.
+  incomingCallCoordinator.start();
+  await systemCallManager.markReady();
+
   runApp(
     OnCueApp(
       authService: authService,
@@ -97,9 +101,6 @@ Future<void> main() async {
       immediateCallTestService: immediateCallTestService,
     ),
   );
-  WidgetsBinding.instance.addPostFrameCallback((_) {
-    unawaited(systemCallManager.markReady());
-  });
 }
 
 final class _ConfigurationRequiredApp extends StatelessWidget {

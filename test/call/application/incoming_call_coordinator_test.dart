@@ -37,7 +37,7 @@ void main() {
   );
 
   test(
-    'waits for CallKit audio activation before starting the answer connection',
+    'waits for delayed CallKit audio activation before connecting',
     () async {
       final systemCallManager = _FakeSystemCallManager(
         emitAudioActivationOnAnswer: false,
@@ -52,15 +52,13 @@ void main() {
         callConnection: connection,
       );
 
-      final answer = coordinator.handleAnswered('321');
-      await answerSucceeded.future;
+      final answerFuture = coordinator.handleAnswered('321');
       await Future<void>.delayed(Duration.zero);
-
       expect(connection.connectedCallSessionId, isNull);
 
       systemCallManager.emitAudioActivated('321');
-      await answer;
-
+      await answerFuture;
+      await answerSucceeded.future;
       expect(connection.connectedCallSessionId, '321');
     },
   );
