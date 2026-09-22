@@ -1,0 +1,8 @@
+{
+  "ONCUE_API_BASE_URL": "https://replace-with-production-api-host",
+  "ONCUE_APNS_ENVIRONMENT": "PRODUCTION",
+  "ONCUE_LOCAL_TEST_CALL_ENABLED": "false",
+  "ONCUE_KAKAO_NATIVE_APP_KEY": "replace-with-production-kakao-native-app-key",
+  "ONCUE_X_CLIENT_ID": "replace-with-production-x-client-id",
+  "ONCUE_X_REDIRECT_URI": "com.oncue.oncuemobile://oauth/x/callback"
+}

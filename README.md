@@ -8,10 +8,10 @@ Flutter 실행에 필요한 API 주소와 OAuth 공개 클라이언트 값은
 `--dart-define-from-file`로 주입한다. 로컬 파일은 Git에 커밋하지 않는다.
 
 ```bash
-cp config/local.json.example config/local.json
+cp config/local.json.template config/local.json
 ```
 
-`config/local.json`의 다음 값을 실제 로컬 환경에 맞게 바꾼다.
+`config/local.json`의 다음 값을 실제 로컬 환경에 맞게 바꾼다. TestFlight 배포는 `config/production.json.template`을 복사해 `config/production.json`을 만들고 배포용 값을 입력한다. 두 파일은 Git에 포함하지 않는다.
 
 - `ONCUE_API_BASE_URL`: Mac의 로컬 IP와 백엔드 포트
 - `ONCUE_APNS_ENVIRONMENT`: 개발 앱은 `SANDBOX`

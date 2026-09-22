@@ -1,6 +1,7 @@
 {
-  "ONCUE_API_BASE_URL": "http://192.168.200.109:8080",
+  "ONCUE_API_BASE_URL": "http://replace-with-local-backend-host:8080",
   "ONCUE_APNS_ENVIRONMENT": "SANDBOX",
+  "ONCUE_LOCAL_TEST_CALL_ENABLED": "true",
   "ONCUE_KAKAO_NATIVE_APP_KEY": "replace-with-local-kakao-native-app-key",
   "ONCUE_X_CLIENT_ID": "replace-with-local-x-client-id",
   "ONCUE_X_REDIRECT_URI": "com.oncue.oncuemobile://oauth/x/callback"
