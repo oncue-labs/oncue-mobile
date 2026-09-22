@@ -69,6 +69,45 @@ void main() {
     },
   );
 
+  test(
+    'refreshes and persists a session after an expired access token',
+    () async {
+      final sessionStore = _FakeAuthSessionStore(savedSession: _session());
+      final refreshedSession = _session(
+        accessToken: 'refreshed-access-token',
+        createdAt: DateTime.parse('2026-09-15T10:02:00Z'),
+        expiresAt: DateTime.parse('2026-09-15T11:02:00Z'),
+      );
+      final authApiClient = _FakeAuthApiClient(
+        session: _session(),
+        refreshedSession: refreshedSession,
+      );
+      final service = AuthService(authApiClient, sessionStore);
+      await service.loadSession();
+
+      final accessToken = await service.refreshAccessToken('access-token');
+
+      expect(accessToken, 'refreshed-access-token');
+      expect(sessionStore.savedSession, same(refreshedSession));
+      expect(service.currentSession, same(refreshedSession));
+      expect(authApiClient.refreshedTokens, ['refresh-token']);
+    },
+  );
+
+  test('clears the session when the refresh token is rejected', () async {
+    final sessionStore = _FakeAuthSessionStore(savedSession: _session());
+    final authApiClient = _FakeAuthApiClient(
+      session: _session(),
+      refreshError: const ApiError(statusCode: 401, message: 'expired'),
+    );
+    final service = AuthService(authApiClient, sessionStore);
+    await service.loadSession();
+
+    expect(await service.refreshAccessToken('access-token'), isNull);
+    expect(sessionStore.clearCount, 1);
+    expect(service.currentSession, isNull);
+  });
+
   test('clears the saved session explicitly on logout', () async {
     final sessionStore = _FakeAuthSessionStore(savedSession: _session());
     final pushService = _FakePushDeviceSessionService();
@@ -98,22 +137,35 @@ void main() {
   });
 }
 
-AuthSession _session() {
+AuthSession _session({
+  String accessToken = 'access-token',
+  DateTime? expiresAt,
+  DateTime? createdAt,
+}) {
   return AuthSession(
-    accessToken: 'access-token',
-    expiresAt: DateTime.parse('2026-09-15T10:01:00Z'),
-    createdAt: DateTime.parse('2026-09-15T10:00:00Z'),
+    accessToken: accessToken,
+    expiresAt: expiresAt ?? DateTime.parse('2026-09-15T10:01:00Z'),
+    createdAt: createdAt ?? DateTime.parse('2026-09-15T10:00:00Z'),
+    refreshToken: 'refresh-token',
+    refreshTokenExpiresAt: DateTime.parse('2026-10-15T10:00:00Z'),
   );
 }
 
 final class _FakeAuthApiClient implements AuthClient {
-  _FakeAuthApiClient({required this.session});
+  _FakeAuthApiClient({
+    required this.session,
+    this.refreshedSession,
+    this.refreshError,
+  });
 
   final AuthSession session;
+  final AuthSession? refreshedSession;
+  final ApiError? refreshError;
   String? provider;
   String? providerAccessToken;
   String? authorizationCode;
   String? codeVerifier;
+  final refreshedTokens = <String>[];
 
   @override
   Future<AuthSession> login(AuthLoginRequest request) async {
@@ -123,6 +175,18 @@ final class _FakeAuthApiClient implements AuthClient {
     codeVerifier = request.codeVerifier;
     return session;
   }
+
+  @override
+  Future<AuthSession> refresh(String refreshToken) async {
+    refreshedTokens.add(refreshToken);
+    if (refreshError != null) {
+      throw refreshError!;
+    }
+    return refreshedSession ?? session;
+  }
+
+  @override
+  Future<void> revoke(String refreshToken) async {}
 }
 
 final class _FakeAuthSessionStore implements AuthSessionStore {

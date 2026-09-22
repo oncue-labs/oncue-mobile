@@ -121,18 +121,32 @@ final class IoJsonHttpTransport implements JsonHttpTransport {
 }
 
 final class HttpApiClient implements ApiClient {
-  HttpApiClient({required Uri baseUri, JsonHttpTransport? transport})
-    : _baseUri = baseUri,
-      _transport = transport ?? IoJsonHttpTransport();
+  HttpApiClient({
+    required Uri baseUri,
+    JsonHttpTransport? transport,
+    Future<String?> Function(String failedAccessToken)? refreshAccessToken,
+  }) : _baseUri = baseUri,
+       _transport = transport ?? IoJsonHttpTransport(),
+       _refreshAccessToken = refreshAccessToken;
 
   final Uri _baseUri;
   final JsonHttpTransport _transport;
+  Future<String?> Function(String failedAccessToken)? _refreshAccessToken;
+
+  void setRefreshAccessTokenHandler(
+    Future<String?> Function(String failedAccessToken) handler,
+  ) {
+    _refreshAccessToken = handler;
+  }
 
   @override
   Future<Object?> getJson(String requestPath, {String? accessToken}) async {
-    final response = await _transport.getJson(
-      _baseUri.resolve(requestPath),
-      headers: _headers(accessToken),
+    final response = await _sendWithRefresh(
+      accessToken: accessToken,
+      send: (token) => _transport.getJson(
+        _baseUri.resolve(requestPath),
+        headers: _headers(token),
+      ),
     );
     return _decodeResponse(response);
   }
@@ -143,10 +157,13 @@ final class HttpApiClient implements ApiClient {
     Map<String, dynamic>? requestBody,
     String? accessToken,
   }) async {
-    final response = await _transport.postJson(
-      _baseUri.resolve(requestPath),
-      headers: _headers(accessToken),
-      body: requestBody,
+    final response = await _sendWithRefresh(
+      accessToken: accessToken,
+      send: (token) => _transport.postJson(
+        _baseUri.resolve(requestPath),
+        headers: _headers(token),
+        body: requestBody,
+      ),
     );
     return _decodeObjectResponse(response);
   }
@@ -157,10 +174,13 @@ final class HttpApiClient implements ApiClient {
     Map<String, dynamic>? requestBody,
     String? accessToken,
   }) async {
-    final response = await _transport.patchJson(
-      _baseUri.resolve(requestPath),
-      headers: _headers(accessToken),
-      body: requestBody,
+    final response = await _sendWithRefresh(
+      accessToken: accessToken,
+      send: (token) => _transport.patchJson(
+        _baseUri.resolve(requestPath),
+        headers: _headers(token),
+        body: requestBody,
+      ),
     );
     return _decodeObjectResponse(response);
   }
@@ -171,19 +191,25 @@ final class HttpApiClient implements ApiClient {
     Map<String, dynamic>? requestBody,
     String? accessToken,
   }) async {
-    final response = await _transport.putJson(
-      _baseUri.resolve(requestPath),
-      headers: _headers(accessToken),
-      body: requestBody,
+    final response = await _sendWithRefresh(
+      accessToken: accessToken,
+      send: (token) => _transport.putJson(
+        _baseUri.resolve(requestPath),
+        headers: _headers(token),
+        body: requestBody,
+      ),
     );
     return _decodeObjectResponse(response);
   }
 
   @override
   Future<Object?> deleteJson(String requestPath, {String? accessToken}) async {
-    final response = await _transport.deleteJson(
-      _baseUri.resolve(requestPath),
-      headers: _headers(accessToken),
+    final response = await _sendWithRefresh(
+      accessToken: accessToken,
+      send: (token) => _transport.deleteJson(
+        _baseUri.resolve(requestPath),
+        headers: _headers(token),
+      ),
     );
     return _decodeResponse(response);
   }
@@ -194,6 +220,23 @@ final class HttpApiClient implements ApiClient {
       headers['authorization'] = 'Bearer $accessToken';
     }
     return headers;
+  }
+
+  Future<JsonHttpResponse> _sendWithRefresh({
+    required String? accessToken,
+    required Future<JsonHttpResponse> Function(String? accessToken) send,
+  }) async {
+    final response = await send(accessToken);
+    if (response.statusCode != 401 ||
+        accessToken == null ||
+        _refreshAccessToken == null) {
+      return response;
+    }
+    final refreshedAccessToken = await _refreshAccessToken!(accessToken);
+    if (refreshedAccessToken == null) {
+      return response;
+    }
+    return send(refreshedAccessToken);
   }
 
   Object? _decodeResponse(JsonHttpResponse response) {

@@ -93,6 +93,44 @@ void main() {
   });
 
   test(
+    'refreshes once and retries an authenticated request after 401',
+    () async {
+      final transport = _SequenceJsonHttpTransport([
+        const JsonHttpResponse(statusCode: 401, body: '{}'),
+        const JsonHttpResponse(statusCode: 200, body: '{"ok":true}'),
+      ]);
+      var refreshCount = 0;
+      final client = HttpApiClient(
+        baseUri: Uri.parse('https://api.oncue.test/'),
+        transport: transport,
+        refreshAccessToken: (failedAccessToken) async {
+          refreshCount++;
+          expect(failedAccessToken, 'expired-access-token');
+          return 'refreshed-access-token';
+        },
+      );
+
+      final response = await client.getJson(
+        '/api/v1/reservations',
+        accessToken: 'expired-access-token',
+      );
+
+      expect(response, {'ok': true});
+      expect(refreshCount, 1);
+      expect(transport.headersHistory, [
+        {
+          'content-type': 'application/json',
+          'authorization': 'Bearer expired-access-token',
+        },
+        {
+          'content-type': 'application/json',
+          'authorization': 'Bearer refreshed-access-token',
+        },
+      ]);
+    },
+  );
+
+  test(
     'supports GET and PATCH JSON requests through the same transport',
     () async {
       final getTransport = _RecordingJsonHttpTransport(
@@ -243,4 +281,49 @@ final class _RecordingJsonHttpTransport implements JsonHttpTransport {
     body = null;
     return response;
   }
+}
+
+final class _SequenceJsonHttpTransport implements JsonHttpTransport {
+  _SequenceJsonHttpTransport(this.responses);
+
+  final List<JsonHttpResponse> responses;
+  final headersHistory = <Map<String, String>>[];
+
+  JsonHttpResponse _next(Map<String, String> headers) {
+    headersHistory.add(Map<String, String>.from(headers));
+    return responses.removeAt(0);
+  }
+
+  @override
+  Future<JsonHttpResponse> getJson(
+    Uri uri, {
+    required Map<String, String> headers,
+  }) async => _next(headers);
+
+  @override
+  Future<JsonHttpResponse> postJson(
+    Uri uri, {
+    required Map<String, String> headers,
+    Map<String, dynamic>? body,
+  }) async => _next(headers);
+
+  @override
+  Future<JsonHttpResponse> patchJson(
+    Uri uri, {
+    required Map<String, String> headers,
+    Map<String, dynamic>? body,
+  }) async => _next(headers);
+
+  @override
+  Future<JsonHttpResponse> putJson(
+    Uri uri, {
+    required Map<String, String> headers,
+    Map<String, dynamic>? body,
+  }) async => _next(headers);
+
+  @override
+  Future<JsonHttpResponse> deleteJson(
+    Uri uri, {
+    required Map<String, String> headers,
+  }) async => _next(headers);
 }

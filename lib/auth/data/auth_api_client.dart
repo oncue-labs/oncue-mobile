@@ -4,6 +4,10 @@ import 'package:oncue_mobile/auth/model/auth_login_request.dart';
 
 abstract interface class AuthClient {
   Future<AuthSession> login(AuthLoginRequest request);
+
+  Future<AuthSession> refresh(String refreshToken);
+
+  Future<void> revoke(String refreshToken);
 }
 
 final class AuthApiClient implements AuthClient {
@@ -18,5 +22,22 @@ final class AuthApiClient implements AuthClient {
       requestBody: request.toJson(),
     );
     return AuthSession.fromJson(response);
+  }
+
+  @override
+  Future<AuthSession> refresh(String refreshToken) async {
+    final response = await _apiClient.postJson(
+      '/api/v1/auth/refresh',
+      requestBody: {'refreshToken': refreshToken},
+    );
+    return AuthSession.fromJson(response);
+  }
+
+  @override
+  Future<void> revoke(String refreshToken) async {
+    await _apiClient.postJson(
+      '/api/v1/auth/logout',
+      requestBody: {'refreshToken': refreshToken},
+    );
   }
 }
