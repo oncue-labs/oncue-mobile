@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:oncue_mobile/app/oncue_app.dart';
 import 'package:flutter_appauth/flutter_appauth.dart';
@@ -95,6 +97,9 @@ Future<void> main() async {
       immediateCallTestService: immediateCallTestService,
     ),
   );
+  WidgetsBinding.instance.addPostFrameCallback((_) {
+    unawaited(systemCallManager.markReady());
+  });
 }
 
 final class _ConfigurationRequiredApp extends StatelessWidget {

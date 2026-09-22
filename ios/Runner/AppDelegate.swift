@@ -19,7 +19,7 @@ import UIKit
     }
     return handler
   }()
-  private var systemCallChannel: FlutterMethodChannel?
+  private var systemCallChannels: [SystemCallChannelRegistration] = []
   private var pushDeviceChannel: FlutterMethodChannel?
   private var pendingSystemCallEvents: [(method: String, callSessionId: String)] = []
   private var pendingPushToken: String?
@@ -83,9 +83,14 @@ import UIKit
       name: "oncue/system_calls",
       binaryMessenger: engineBridge.applicationRegistrar.messenger()
     )
-    self.systemCallChannel = systemCallChannel
+    let registration = SystemCallChannelRegistration(channel: systemCallChannel)
+    systemCallChannels.append(registration)
     systemCallChannel.setMethodCallHandler { [weak self] call, result in
-      self?.handleSystemCallMethod(call, result: result)
+      self?.handleSystemCallMethod(
+        call,
+        registration: registration,
+        result: result
+      )
     }
     flushPendingSystemCallEvents()
 
@@ -109,8 +114,16 @@ import UIKit
 
   private func handleSystemCallMethod(
     _ call: FlutterMethodCall,
+    registration: SystemCallChannelRegistration,
     result: @escaping FlutterResult
   ) {
+    if call.method == "systemCallChannelReady" {
+      registration.isReady = true
+      flushPendingSystemCallEvents()
+      result(nil)
+      return
+    }
+
     guard
       let arguments = call.arguments as? [String: Any],
       let callSessionId = arguments["callSessionId"] as? String,
@@ -180,14 +193,21 @@ import UIKit
   }
 
   private func publishSystemCallEvent(method: String, callSessionId: String) {
-    guard let systemCallChannel = systemCallChannel else {
+    print("[OnCue.CallKit] publish event=\(method) callSessionId=\(callSessionId)")
+    let readyChannels = systemCallChannels.filter(\.isReady)
+    guard !readyChannels.isEmpty else {
       pendingSystemCallEvents.append((method: method, callSessionId: callSessionId))
       return
     }
-    systemCallChannel.invokeMethod(method, arguments: callSessionId)
+    readyChannels.forEach { registration in
+      registration.channel.invokeMethod(method, arguments: callSessionId)
+    }
   }
 
   private func flushPendingSystemCallEvents() {
+    guard systemCallChannels.contains(where: \.isReady) else {
+      return
+    }
     let pendingEvents = pendingSystemCallEvents
     pendingSystemCallEvents.removeAll()
     pendingEvents.forEach { event in
@@ -220,5 +240,14 @@ import UIKit
     @unknown default:
       return "permissionRequired"
     }
+  }
+}
+
+private final class SystemCallChannelRegistration {
+  let channel: FlutterMethodChannel
+  var isReady = false
+
+  init(channel: FlutterMethodChannel) {
+    self.channel = channel
   }
 }

@@ -28,6 +28,7 @@ final class IncomingCallCoordinator {
   final List<StreamSubscription<String>> _subscriptions = [];
   final StreamController<String> _callFinishedController =
       StreamController<String>.broadcast();
+  final Set<String> _answerHandlingCallSessionIds = <String>{};
   String? _activeCallSessionId;
   bool _started = false;
 
@@ -68,6 +69,13 @@ final class IncomingCallCoordinator {
 
   Future<void> handleAnswered(String callSessionId) async {
     start();
+    if (_activeCallSessionId == callSessionId ||
+        !_answerHandlingCallSessionIds.add(callSessionId)) {
+      logCallDiagnostic(
+        'incoming_call.duplicate_answer_ignored callSessionId=$callSessionId',
+      );
+      return;
+    }
     logCallDiagnostic('incoming_call.answered callSessionId=$callSessionId');
     // A VoIP push can cold-launch the app straight into call handling,
     // before the UI's own session restore has finished. Ensure the session
@@ -79,6 +87,7 @@ final class IncomingCallCoordinator {
         'incoming_call.no_session callSessionId=$callSessionId',
       );
       await _systemCallManager.answerFailed(callSessionId);
+      _answerHandlingCallSessionIds.remove(callSessionId);
       return;
     }
     logCallDiagnostic(
@@ -98,6 +107,7 @@ final class IncomingCallCoordinator {
       logCallDiagnostic(
         'incoming_call.answer_succeeded_sent callSessionId=$callSessionId',
       );
+      await _waitForAudioActivation(callSessionId);
       await _callConnection.connect(
         callSessionId,
         accessToken: session.accessToken,
@@ -109,7 +119,30 @@ final class IncomingCallCoordinator {
       _activeCallSessionId = null;
       await _callConnection.hangup();
       await _systemCallManager.endCall(callSessionId);
+    } finally {
+      _answerHandlingCallSessionIds.remove(callSessionId);
     }
+  }
+
+  Future<void> _waitForAudioActivation(String callSessionId) async {
+    if (await _systemCallManager.isAudioActivated(callSessionId)) {
+      logCallDiagnostic(
+        'incoming_call.audio_already_activated callSessionId=$callSessionId',
+      );
+      return;
+    }
+
+    logCallDiagnostic(
+      'incoming_call.waiting_for_audio_activation callSessionId=$callSessionId',
+    );
+    await _systemCallManager.onAudioActivated
+        .firstWhere(
+          (activatedCallSessionId) => activatedCallSessionId == callSessionId,
+        )
+        .timeout(const Duration(seconds: 5));
+    logCallDiagnostic(
+      'incoming_call.audio_activation_received callSessionId=$callSessionId',
+    );
   }
 
   Future<void> handleRejected(String callSessionId) async {
@@ -122,18 +155,32 @@ final class IncomingCallCoordinator {
         );
       }
     } finally {
-      if (_activeCallSessionId == callSessionId) {
+      final isActiveCall = _activeCallSessionId == callSessionId;
+      if (isActiveCall) {
         _activeCallSessionId = null;
+        await _callConnection.hangup();
+      } else if (_activeCallSessionId == null) {
+        await _callConnection.hangup();
+      } else {
+        logCallDiagnostic(
+          'incoming_call.stale_rejection_ignored callSessionId=$callSessionId',
+        );
       }
-      await _callConnection.hangup();
     }
   }
 
   Future<void> handleEnded(String callSessionId) async {
-    if (_activeCallSessionId == callSessionId) {
+    final isActiveCall = _activeCallSessionId == callSessionId;
+    if (isActiveCall) {
       _activeCallSessionId = null;
+      await _callConnection.hangup();
+    } else {
+      // A delayed CallKit event from an older Flutter/app instance must not
+      // terminate the currently active WebRTC call.
+      logCallDiagnostic(
+        'incoming_call.stale_end_ignored callSessionId=$callSessionId',
+      );
     }
-    await _callConnection.hangup();
     if (!_callFinishedController.isClosed) {
       _callFinishedController.add(callSessionId);
     }

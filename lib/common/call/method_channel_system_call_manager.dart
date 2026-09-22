@@ -74,6 +74,12 @@ final class MethodChannelSystemCallManager implements SystemCallManager {
     return result ?? false;
   }
 
+  /// Completes the native-to-Dart handshake after the call event streams have
+  /// been subscribed. Native CallKit events stay queued until this is called.
+  Future<void> markReady() {
+    return _channel.invokeMethod<void>('systemCallChannelReady');
+  }
+
   Future<void> _invokeCallCommand(String method, String callSessionId) {
     return _channel.invokeMethod<void>(method, {
       'callSessionId': callSessionId,

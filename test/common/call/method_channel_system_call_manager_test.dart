@@ -50,6 +50,23 @@ void main() {
     expect(calls[3].arguments, {'callSessionId': '12345'});
   });
 
+  test('notifies native code after Dart call handlers are ready', () async {
+    final calls = <MethodCall>[];
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+        .setMockMethodCallHandler(channel, (call) async {
+          calls.add(call);
+          return null;
+        });
+    final manager = MethodChannelSystemCallManager();
+    addTearDown(manager.dispose);
+
+    await manager.markReady();
+
+    expect(calls, hasLength(1));
+    expect(calls.single.method, 'systemCallChannelReady');
+    expect(calls.single.arguments, isNull);
+  });
+
   test('publishes native lifecycle events with the call session id', () async {
     final manager = MethodChannelSystemCallManager();
     addTearDown(manager.dispose);
@@ -57,8 +74,10 @@ void main() {
     final answered = expectLater(manager.onAnswered, emits('12345'));
     final rejected = expectLater(manager.onRejected, emits('12345'));
     final ended = expectLater(manager.onEnded, emits('12345'));
-    final audioActivated =
-        expectLater(manager.onAudioActivated, emits('12345'));
+    final audioActivated = expectLater(
+      manager.onAudioActivated,
+      emits('12345'),
+    );
 
     final messenger =
         TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger;

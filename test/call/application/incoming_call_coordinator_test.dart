@@ -37,7 +37,7 @@ void main() {
   );
 
   test(
-    'starts the answer connection when CallKit audio activation is delayed',
+    'waits for CallKit audio activation before starting the answer connection',
     () async {
       final systemCallManager = _FakeSystemCallManager(
         emitAudioActivationOnAnswer: false,
@@ -56,7 +56,7 @@ void main() {
       await answerSucceeded.future;
       await Future<void>.delayed(Duration.zero);
 
-      expect(connection.connectedCallSessionId, '321');
+      expect(connection.connectedCallSessionId, isNull);
 
       systemCallManager.emitAudioActivated('321');
       await answer;
@@ -163,6 +163,23 @@ void main() {
     expect(connection.hangupCount, 1);
   });
 
+  test('ignores an end event for a different call session', () async {
+    final connection = _FakeCallConnection();
+    final coordinator = IncomingCallCoordinator(
+      systemCallManager: _FakeSystemCallManager(),
+      authSessionProvider: _FakeAuthSessionProvider(_session()),
+      callSessionApi: _FakeCallSessionApi(),
+      callConnection: connection,
+    );
+
+    await coordinator.handleAnswered('active-call');
+    await coordinator.handleEnded('stale-call');
+
+    expect(connection.hangupCount, 0);
+    expect(connection.connectedCallSessionId, 'active-call');
+    await coordinator.dispose();
+  });
+
   test('emits a call-finished event when CallKit ends the call', () async {
     final coordinator = IncomingCallCoordinator(
       systemCallManager: _FakeSystemCallManager(),
@@ -246,6 +263,14 @@ final class _FakeCallSessionApi implements CallSessionCommandApi {
 
   @override
   Future<CallSession> prepareTestCall(
+    String reservationId, {
+    String? accessToken,
+  }) async {
+    throw UnimplementedError();
+  }
+
+  @override
+  Future<CallSession> ringTestIncomingCall(
     String reservationId, {
     String? accessToken,
   }) async {
