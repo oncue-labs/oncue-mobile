@@ -1,9 +1,23 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:developer' as developer;
 import 'dart:io';
 
 import 'package:flutter_webrtc/flutter_webrtc.dart';
+import 'package:flutter/services.dart';
 import 'package:oncue_mobile/call/model/connection_token.dart';
+
+typedef CallDiagnosticLogger = void Function(String message);
+
+void logCallDiagnostic(String message) {
+  developer.log(message, name: 'oncue.call');
+  // developer.log only surfaces when a debugger/VM service is attached, so
+  // TestFlight builds never show it. print() also reaches the OS syslog
+  // (visible via Console/idevicesyslog) without a debugger, which is the
+  // only way to diagnose call issues on a build nobody is attached to.
+  // ignore: avoid_print
+  print('[oncue.call] $message');
+}
 
 abstract interface class CallConnectionTokenIssuer {
   Future<ConnectionToken> issueConnectionToken(
@@ -30,10 +44,15 @@ abstract interface class CallConnection {
 /// can be tested without creating native WebRTC objects. Android can reuse this
 /// contract later with a platform-specific transport implementation.
 final class CallConnectionService implements CallConnection {
-  CallConnectionService(this._tokenIssuer, this._transport);
+  CallConnectionService(
+    this._tokenIssuer,
+    this._transport, {
+    CallDiagnosticLogger? diagnosticLogger,
+  }) : _diagnosticLogger = diagnosticLogger ?? logCallDiagnostic;
 
   final CallConnectionTokenIssuer _tokenIssuer;
   final CallConnectionTransport _transport;
+  final CallDiagnosticLogger _diagnosticLogger;
   bool _isActive = false;
 
   @override
@@ -42,14 +61,27 @@ final class CallConnectionService implements CallConnection {
       await hangup();
     }
 
-    final token = await _tokenIssuer.issueConnectionToken(
-      callSessionId,
-      accessToken: accessToken,
-    );
+    _diagnosticLogger('call_connection.start callSessionId=$callSessionId');
+    var stage = 'token';
     try {
+      final token = await _tokenIssuer.issueConnectionToken(
+        callSessionId,
+        accessToken: accessToken,
+      );
+      _diagnosticLogger(
+        'call_connection.token_issued callSessionId=$callSessionId',
+      );
+      stage = 'transport';
       await _transport.connect(token);
       _isActive = true;
-    } catch (_) {
+      _diagnosticLogger(
+        'call_connection.connected callSessionId=$callSessionId',
+      );
+    } catch (error) {
+      _diagnosticLogger(
+        'call_connection.failed callSessionId=$callSessionId '
+        'stage=$stage ${_safeErrorDescription(error)}',
+      );
       await _transport.hangup();
       rethrow;
     }
@@ -61,7 +93,15 @@ final class CallConnectionService implements CallConnection {
       return;
     }
     _isActive = false;
+    _diagnosticLogger('call_connection.hangup');
     await _transport.hangup();
+  }
+
+  String _safeErrorDescription(Object error) {
+    if (error case PlatformException(:final code)) {
+      return 'errorCode=$code';
+    }
+    return 'errorType=${error.runtimeType}';
   }
 }
 
@@ -72,9 +112,11 @@ final class FlutterWebRtcCallConnectionTransport
     implements CallConnectionTransport {
   FlutterWebRtcCallConnectionTransport({
     this.connectionTimeout = const Duration(seconds: 30),
-  });
+    CallDiagnosticLogger? diagnosticLogger,
+  }) : _diagnosticLogger = diagnosticLogger ?? logCallDiagnostic;
 
   final Duration connectionTimeout;
+  final CallDiagnosticLogger _diagnosticLogger;
 
   RTCPeerConnection? _peerConnection;
   MediaStream? _localStream;
@@ -95,11 +137,13 @@ final class FlutterWebRtcCallConnectionTransport
       );
       _peerConnection = peerConnection;
       _configurePeerConnection(peerConnection);
+      _diagnosticLogger('webrtc.peer_connection_created');
 
       _signalingSocket = await WebSocket.connect(
         token.signalingUrl,
         headers: {'Authorization': 'Bearer ${token.connectionToken}'},
       );
+      _diagnosticLogger('webrtc.signaling_connected');
       _signalingSubscription = _signalingSocket!.listen(
         (message) => unawaited(_handleSignalingMessage(message)),
         onError: (Object error, StackTrace stackTrace) {
@@ -117,11 +161,24 @@ final class FlutterWebRtcCallConnectionTransport
         },
       );
 
+      // CallKit owns activation on iOS. Ask flutter_webrtc to apply its
+      // RTCAudioSession configuration before creating the microphone track;
+      // CallKit's didActivate callback then informs the same audio session
+      // when the system has activated it.
+      await Helper.ensureAudioSession();
       _localStream = await navigator.mediaDevices.getUserMedia({
         'audio': true,
         'video': false,
       });
-      for (final track in _localStream!.getAudioTracks()) {
+      final audioTracks = _localStream!.getAudioTracks();
+      _diagnosticLogger(
+        'webrtc.local_audio_ready tracks=${audioTracks.length}',
+      );
+      for (final track in audioTracks) {
+        _diagnosticLogger(
+          'webrtc.local_audio_track kind=${track.kind} '
+          'enabled=${track.enabled}',
+        );
         await peerConnection.addTrack(track, _localStream!);
       }
 
@@ -134,9 +191,13 @@ final class FlutterWebRtcCallConnectionTransport
         'type': 'offer',
         'payload': {'sdp': offer.sdp},
       });
+      _diagnosticLogger('webrtc.offer_sent');
 
       await connectionCompleter.future.timeout(connectionTimeout);
-    } catch (_) {
+    } catch (error) {
+      _diagnosticLogger(
+        'webrtc.connect_failed ${_safeErrorDescription(error)}',
+      );
       await hangup();
       rethrow;
     } finally {
@@ -159,6 +220,7 @@ final class FlutterWebRtcCallConnectionTransport
         // The peer may already have closed the socket.
       }
     }
+    _diagnosticLogger('webrtc.hangup');
 
     await _signalingSubscription?.cancel();
     _signalingSubscription = null;
@@ -208,11 +270,14 @@ final class FlutterWebRtcCallConnectionTransport
           'sdpMLineIndex': candidate.sdpMLineIndex,
         },
       });
+      _diagnosticLogger('webrtc.ice_candidate_sent');
     };
     peerConnection.onConnectionState = (state) {
+      _diagnosticLogger('webrtc.peer_connection_state state=$state');
       switch (state) {
         case RTCPeerConnectionState.RTCPeerConnectionStateConnected:
           _isConnected = true;
+          _diagnosticLogger('webrtc.connected');
           _connectionCompleter?.complete();
         case RTCPeerConnectionState.RTCPeerConnectionStateFailed:
         case RTCPeerConnectionState.RTCPeerConnectionStateClosed:
@@ -227,9 +292,11 @@ final class FlutterWebRtcCallConnectionTransport
       }
     };
     peerConnection.onIceConnectionState = (state) {
+      _diagnosticLogger('webrtc.ice_connection_state state=$state');
       if (state == RTCIceConnectionState.RTCIceConnectionStateConnected ||
           state == RTCIceConnectionState.RTCIceConnectionStateCompleted) {
         _isConnected = true;
+        _diagnosticLogger('webrtc.ice_connected');
         _connectionCompleter?.complete();
       }
     };
@@ -252,9 +319,13 @@ final class FlutterWebRtcCallConnectionTransport
           await _peerConnection?.setRemoteDescription(
             RTCSessionDescription(sdp, 'answer'),
           );
+          _diagnosticLogger('webrtc.answer_received');
         }
       }
     } catch (error, stackTrace) {
+      _diagnosticLogger(
+        'webrtc.signaling_message_failed ${_safeErrorDescription(error)}',
+      );
       _completeConnectionError(error, stackTrace);
     }
   }
@@ -268,9 +339,19 @@ final class FlutterWebRtcCallConnectionTransport
   }
 
   void _completeConnectionError(Object error, StackTrace stackTrace) {
+    _diagnosticLogger(
+      'webrtc.connection_error ${_safeErrorDescription(error)}',
+    );
     final completer = _connectionCompleter;
     if (completer != null && !completer.isCompleted) {
       completer.completeError(error, stackTrace);
     }
+  }
+
+  String _safeErrorDescription(Object error) {
+    if (error case PlatformException(:final code)) {
+      return 'errorCode=$code';
+    }
+    return 'errorType=${error.runtimeType}';
   }
 }

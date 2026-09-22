@@ -3,7 +3,6 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:oncue_mobile/combination/model/call_combination_card.dart';
 import 'package:oncue_mobile/call/application/immediate_call_test_service.dart';
-import 'package:oncue_mobile/call/presentation/immediate_call_page.dart';
 import 'package:oncue_mobile/common/design_system/widgets/app_avatar.dart';
 import 'package:oncue_mobile/common/design_system/widgets/app_card.dart';
 import 'package:oncue_mobile/common/design_system/widgets/app_snackbar.dart';
@@ -176,7 +175,7 @@ final class _ReservationListPageState extends State<ReservationListPage>
           callFinishedEvents: widget.callFinishedEvents,
           onStartTestCall: widget.immediateCallTestService == null
               ? null
-              : () => _openImmediateTestCall(context, reservation, combination),
+              : () => _requestIncomingTestCall(context, reservation),
           onEdit: widget.reservationService == null
               ? null
               : () => _openEditForm(context, reservation, combination),
@@ -194,25 +193,27 @@ final class _ReservationListPageState extends State<ReservationListPage>
     });
   }
 
-  Future<void> _openImmediateTestCall(
+  Future<void> _requestIncomingTestCall(
     BuildContext context,
     Reservation reservation,
-    CallCombinationCard combination,
   ) async {
     final service = widget.immediateCallTestService;
     if (service == null) {
       return;
     }
-    await Navigator.of(context).push<void>(
-      MaterialPageRoute<void>(
-        builder: (_) => ImmediateCallPage(
-          reservationId: reservation.reservationId,
-          accessToken: widget.accessToken,
-          combination: combination,
-          callService: service,
-        ),
-      ),
-    );
+    try {
+      await service.ringIncomingCall(
+        reservation.reservationId,
+        accessToken: widget.accessToken,
+      );
+      if (context.mounted) {
+        AppSnackbar.showInfo(context, '수신 전화를 전송했습니다.');
+      }
+    } on ApiError catch (error) {
+      if (context.mounted) {
+        AppSnackbar.showError(context, error.message);
+      }
+    }
   }
 
   Future<void> _openEditForm(

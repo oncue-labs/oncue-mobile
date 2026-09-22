@@ -27,6 +27,24 @@ void main() {
 
     expect(transport.hangupCount, 1);
   });
+
+  test('records safe connection lifecycle diagnostics', () async {
+    final events = <String>[];
+    final service = CallConnectionService(
+      _FakeConnectionTokenIssuer(),
+      _FakeCallConnectionTransport(),
+      diagnosticLogger: events.add,
+    );
+
+    await service.connect('321', accessToken: 'access-token');
+
+    expect(events, [
+      'call_connection.start callSessionId=321',
+      'call_connection.token_issued callSessionId=321',
+      'call_connection.connected callSessionId=321',
+    ]);
+    expect(events.join(), isNot(contains('connection-token')));
+  });
 }
 
 final class _FakeConnectionTokenIssuer implements CallConnectionTokenIssuer {

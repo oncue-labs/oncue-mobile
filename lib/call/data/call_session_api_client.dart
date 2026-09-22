@@ -8,6 +8,11 @@ abstract interface class CallSessionCommandApi {
     String reservationId, {
     String? accessToken,
   });
+
+  Future<CallSession> ringTestIncomingCall(
+    String reservationId, {
+    String? accessToken,
+  });
 }
 
 final class CallSessionApiClient implements CallSessionCommandApi {
@@ -34,6 +39,18 @@ final class CallSessionApiClient implements CallSessionCommandApi {
   }) async {
     final response = await _apiClient.postJson(
       '/api/v1/reservations/$reservationId/test-call',
+      accessToken: accessToken,
+    );
+    return CallSession.fromJson(response);
+  }
+
+  @override
+  Future<CallSession> ringTestIncomingCall(
+    String reservationId, {
+    String? accessToken,
+  }) async {
+    final response = await _apiClient.postJson(
+      '/api/v1/reservations/$reservationId/test-incoming-call',
       accessToken: accessToken,
     );
     return CallSession.fromJson(response);

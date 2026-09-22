@@ -47,6 +47,26 @@ void main() {
     expect(session.callSessionId, '42');
     expect(session.callStatus, 'PREPARING');
   });
+
+  test('requests an immediate incoming call through the development endpoint', () async {
+    final apiClient = _RecordingApiClient(
+      response: {
+        'callSessionId': 42,
+        'callStatus': 'RINGING',
+        'callOutcome': null,
+        'createdAt': '2026-09-12T10:00:00Z',
+        'endedAt': null,
+      },
+    );
+    final client = CallSessionApiClient(apiClient);
+
+    final session = await client.ringTestIncomingCall('100');
+
+    expect(apiClient.path, '/api/v1/reservations/100/test-incoming-call');
+    expect(apiClient.body, isNull);
+    expect(session.callSessionId, '42');
+    expect(session.callStatus, 'RINGING');
+  });
 }
 
 final class _RecordingApiClient implements ApiClient {

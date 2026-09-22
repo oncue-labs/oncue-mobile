@@ -48,6 +48,14 @@ final class _NeverPreparingCallSessionApi implements CallSessionCommandApi {
   }
 
   @override
+  Future<CallSession> ringTestIncomingCall(
+    String reservationId, {
+    String? accessToken,
+  }) {
+    return Completer<CallSession>().future;
+  }
+
+  @override
   Future<CallSession> reject(String callSessionId, {String? accessToken}) {
     throw UnimplementedError();
   }

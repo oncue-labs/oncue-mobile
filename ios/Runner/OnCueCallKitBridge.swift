@@ -1,6 +1,7 @@
 import AVFoundation
 import CallKit
 import Foundation
+import WebRTC
 
 final class OnCueCallKitBridge: NSObject, CXProviderDelegate {
   static let answeredEvent = "onAnswered"
@@ -43,6 +44,13 @@ final class OnCueCallKitBridge: NSObject, CXProviderDelegate {
       completion(CallKitBridgeError.invalidCallDisplayInfo)
       return
     }
+
+    // CallKit owns AVAudioSession activation. Keep WebRTC's audio device
+    // module paused until CallKit calls didActivate; otherwise a cold VoIP
+    // answer can create a peer connection without starting capture/playout.
+    let rtcAudioSession = RTCAudioSession.sharedInstance()
+    rtcAudioSession.useManualAudio = true
+    rtcAudioSession.isAudioEnabled = false
 
     if uuidByCallSessionId[callSessionId] != nil {
       completion(nil)
@@ -113,15 +121,19 @@ final class OnCueCallKitBridge: NSObject, CXProviderDelegate {
 
   func provider(_ provider: CXProvider, perform action: CXAnswerCallAction) {
     guard let callSessionId = callSessionIdByUUID[action.callUUID] else {
+      debugLog("answer action has no call session")
       action.fail()
       return
     }
+
+    debugLog("answer action received callSessionId=\(callSessionId)")
 
     // CallKit expects this action to be fulfilled promptly. Waiting for the
     // Flutter isolate to receive and process onAnswered can make iOS end the
     // call before WebRTC starts, especially when the app is backgrounded.
     answeredCallSessionIds.insert(callSessionId)
     action.fulfill()
+    debugLog("answer action fulfilled callSessionId=\(callSessionId)")
     eventHandler?(Self.answeredEvent, callSessionId)
   }
 
@@ -141,31 +153,30 @@ final class OnCueCallKitBridge: NSObject, CXProviderDelegate {
   }
 
   func provider(_ provider: CXProvider, didActivate audioSession: AVAudioSession) {
+    debugLog("audio session activated")
     if let callSessionId = answeredCallSessionIds.first {
       audioActivatedCallSessionIds.insert(callSessionId)
+      debugLog("audio activation recorded callSessionId=\(callSessionId)")
     }
 
-    do {
-      try audioSession.setCategory(
-        .playAndRecord,
-        mode: .voiceChat,
-        options: [.allowBluetooth, .defaultToSpeaker]
-      )
-      try audioSession.setActive(true)
-      if let callSessionId = answeredCallSessionIds.first {
-        eventHandler?(Self.audioActivatedEvent, callSessionId)
-      }
-    } catch {
-      // WebRTC will surface a connection failure if the audio route cannot be activated.
+    // flutter_webrtc owns the WebRTC audio engine through RTCAudioSession.
+    // CallKit activates AVAudioSession outside of that owner, so forward the
+    // lifecycle event explicitly; otherwise WebRTC can create a peer
+    // connection without starting microphone capture or remote playback.
+    let rtcAudioSession = RTCAudioSession.sharedInstance()
+    rtcAudioSession.audioSessionDidActivate(audioSession)
+    rtcAudioSession.isAudioEnabled = true
+    if let callSessionId = answeredCallSessionIds.first {
+      debugLog("audio activation event sent callSessionId=\(callSessionId)")
+      eventHandler?(Self.audioActivatedEvent, callSessionId)
     }
   }
 
   func provider(_ provider: CXProvider, didDeactivate audioSession: AVAudioSession) {
-    do {
-      try audioSession.setActive(false, options: .notifyOthersOnDeactivation)
-    } catch {
-      // The system may already have deactivated the session.
-    }
+    debugLog("audio session deactivated")
+    let rtcAudioSession = RTCAudioSession.sharedInstance()
+    rtcAudioSession.audioSessionDidDeactivate(audioSession)
+    rtcAudioSession.isAudioEnabled = false
   }
 
   private func removeCall(callSessionId: String) {
@@ -176,6 +187,13 @@ final class OnCueCallKitBridge: NSObject, CXProviderDelegate {
     answeredCallSessionIds.remove(callSessionId)
     audioActivatedCallSessionIds.remove(callSessionId)
     appEndedCallSessionIds.remove(callSessionId)
+    let rtcAudioSession = RTCAudioSession.sharedInstance()
+    rtcAudioSession.isAudioEnabled = false
+    rtcAudioSession.useManualAudio = false
+  }
+
+  private func debugLog(_ message: String) {
+    print("[OnCue.CallKit] \(message)")
   }
 }
 

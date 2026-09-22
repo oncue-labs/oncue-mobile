@@ -179,7 +179,7 @@ final class _ReservationDetailPageState extends State<ReservationDetailPage>
               key: const ValueKey('local-test-call-button'),
               onPressed: onStartTestCall,
               icon: const Icon(Icons.bug_report_outlined),
-              label: const Text('개발용 즉시 통화'),
+              label: const Text('개발용 수신 전화'),
             ),
           ],
           if (!canEdit) ...[

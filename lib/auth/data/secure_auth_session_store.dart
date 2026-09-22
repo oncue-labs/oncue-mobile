@@ -14,7 +14,18 @@ abstract interface class AuthSecureStorage {
 
 final class FlutterAuthSecureStorage implements AuthSecureStorage {
   FlutterAuthSecureStorage({FlutterSecureStorage? storage})
-    : _storage = storage ?? const FlutterSecureStorage();
+    : _storage =
+          storage ??
+          const FlutterSecureStorage(
+            // A VoIP push can require reading the session while the device
+            // is locked (answering from the lock screen). The default
+            // `unlocked` accessibility throws "keychain is locked" in that
+            // case, so use `first_unlock`, which only requires one unlock
+            // since boot.
+            iOptions: IOSOptions(
+              accessibility: KeychainAccessibility.first_unlock,
+            ),
+          );
 
   final FlutterSecureStorage _storage;
 

@@ -17,6 +17,11 @@ abstract interface class AuthSessionStore {
 abstract interface class AuthSessionProvider {
   AuthSession? get currentSession;
 
+  /// Returns the current session, loading it from storage first if it has
+  /// not been restored into memory yet. A VoIP push can launch the app in
+  /// the background and reach call handling before the UI's own session
+  /// restore completes, so callers that need the session outside the normal
+  /// UI startup path must await this instead of reading [currentSession].
   Future<AuthSession?> ensureSessionLoaded();
 }
 
